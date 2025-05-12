@@ -17,7 +17,7 @@ console.log('Using feed URL:', NEWS_SOURCE_URL);
 
 const parser = new Parser();
 
-const dataDir = path.join(process.cwd(), 'data');
+const dataDir = path.join(process.cwd(), 'public', 'data');
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
