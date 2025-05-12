@@ -1,0 +1,43 @@
+name: Update Football Content
+
+on:
+  schedule:
+    # Run every hour
+    - cron: '0 * * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  update-content:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Create .env file
+        run: |
+          echo "VITE_FOOTBALL_API_KEY=${{ secrets.VITE_FOOTBALL_API_KEY }}" >> .env
+          echo "VITE_OPENAI_API_KEY=${{ secrets.VITE_OPENAI_API_KEY }}" >> .env
+          echo "VITE_NEWS_SOURCE_URL=${{ secrets.VITE_NEWS_SOURCE_URL }}" >> .env
+      
+      - name: Fetch and process football news
+        run: node scripts/fetch-news.js
+      
+      - name: Fetch football scores
+        run: node scripts/fetch-scores.js
+      
+      - name: Commit and push if content changed
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add data/
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Update football content [skip ci]" && git push)

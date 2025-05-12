@@ -1,0 +1,38 @@
+[
+  {
+    "id": "today1",
+    "status": "FT",
+    "time": "Full Time",
+    "league": "Premier League",
+    "homeTeam": {
+      "id": "mancity",
+      "name": "Man City",
+      "logo": "https://via.placeholder.com/30/00BFFF/FFFFFF?text=MCI",
+      "score": 3
+    },
+    "awayTeam": {
+      "id": "manutd",
+      "name": "Man United",
+      "logo": "https://via.placeholder.com/30/FF0000/FFFFFF?text=MUN",
+      "score": 2
+    }
+  },
+  {
+    "id": "today2",
+    "status": "FT",
+    "time": "Full Time",
+    "league": "Serie A",
+    "homeTeam": {
+      "id": "juventus",
+      "name": "Juventus",
+      "logo": "https://via.placeholder.com/30/000000/FFFFFF?text=JUV",
+      "score": 1
+    },
+    "awayTeam": {
+      "id": "milan",
+      "name": "AC Milan",
+      "logo": "https://via.placeholder.com/30/FF0000/000000?text=MIL",
+      "score": 1
+    }
+  }
+]

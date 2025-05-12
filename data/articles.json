@@ -1,0 +1,35 @@
+[
+  {
+    "id": "1",
+    "title": "Manchester United Secures Dramatic Win Against Liverpool",
+    "content": "In a thrilling encounter at Old Trafford, Manchester United secured a dramatic 3-2 victory against Liverpool with Marcus Rashford scoring the winning goal in the 89th minute. The Red Devils came from behind after going down 0-2 in the first half.",
+    "summary": "Manchester United came from behind to beat Liverpool 3-2 in a thrilling match at Old Trafford, with Marcus Rashford scoring the winning goal in the 89th minute.",
+    "imageUrl": "https://images.pexels.com/photos/46798/the-ball-stadion-football-the-pitch-46798.jpeg",
+    "publishedAt": "2025-06-10T15:30:00Z",
+    "category": "Premier League",
+    "source": "Football News",
+    "url": "#"
+  },
+  {
+    "id": "2",
+    "title": "Barcelona Announces New Manager After Disappointing Season",
+    "content": "FC Barcelona has announced the appointment of former midfielder Xavi Hernandez as their new manager on a three-year deal following a fifth-place finish in La Liga, their worst position in over two decades.",
+    "summary": "Barcelona has appointed former midfielder Xavi Hernandez as their new manager on a three-year deal following a fifth-place finish in La Liga.",
+    "imageUrl": "https://images.pexels.com/photos/274506/pexels-photo-274506.jpeg",
+    "publishedAt": "2025-06-09T11:45:00Z",
+    "category": "La Liga",
+    "source": "Sports Central",
+    "url": "#"
+  },
+  {
+    "id": "3",
+    "title": "Bayern Munich Wins Bundesliga for the 11th Consecutive Time",
+    "content": "Bayern Munich has secured the Bundesliga title for the 11th consecutive season after a convincing 3-0 victory against Borussia Dortmund in the final match of the season, extending their historic dominance in German football.",
+    "summary": "Bayern Munich has won the Bundesliga for the 11th consecutive season after a 3-0 victory against Borussia Dortmund in the final match of the season.",
+    "imageUrl": "https://images.pexels.com/photos/47730/the-ball-stadion-football-the-pitch-47730.jpeg",
+    "publishedAt": "2025-06-08T18:15:00Z",
+    "category": "Bundesliga",
+    "source": "German Football News",
+    "url": "#"
+  }
+]

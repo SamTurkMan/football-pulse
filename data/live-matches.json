@@ -1,0 +1,38 @@
+[
+  {
+    "id": "live1",
+    "status": "Live",
+    "time": "65'",
+    "league": "Premier League",
+    "homeTeam": {
+      "id": "arsenal",
+      "name": "Arsenal",
+      "logo": "https://via.placeholder.com/30/FF0000/FFFFFF?text=ARS",
+      "score": 2
+    },
+    "awayTeam": {
+      "id": "chelsea",
+      "name": "Chelsea",
+      "logo": "https://via.placeholder.com/30/0000FF/FFFFFF?text=CHE",
+      "score": 1
+    }
+  },
+  {
+    "id": "live2",
+    "status": "HT",
+    "time": "Half Time",
+    "league": "La Liga",
+    "homeTeam": {
+      "id": "barcelona",
+      "name": "Barcelona",
+      "logo": "https://via.placeholder.com/30/AA0000/FFFFFF?text=BAR",
+      "score": 0
+    },
+    "awayTeam": {
+      "id": "realmadrid",
+      "name": "Real Madrid",
+      "logo": "https://via.placeholder.com/30/FFFFFF/000000?text=RMA",
+      "score": 0
+    }
+  }
+]
