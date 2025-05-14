@@ -2,7 +2,7 @@ import { Article } from '../types/Article';
 
 export const fetchNewsArticles = async (page: number = 1): Promise<Article[]> => {
   try {
-    const response = await fetch('/public/data/articles.json');
+    const response = await fetch('/data/articles.json');
     const articles = await response.json();
     
     const articlesPerPage = 4;
