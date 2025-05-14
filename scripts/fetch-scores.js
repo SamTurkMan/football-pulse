@@ -1,6 +1,7 @@
-import fs from 'fs';
-import path from 'path';
-import fetch from 'node-fetch';
+const fs = require('fs');
+const path = require('path');
+const fetch = require('node-fetch');
+require('dotenv').config();
 
 const API_KEY = process.env.VITE_FOOTBALL_API_KEY;
 const BASE_URL = 'https://v3.football.api-sports.io';
@@ -137,13 +138,13 @@ function saveMatchesToFiles(live, today, upcoming) {
       JSON.stringify(live, null, 2)
     );
     console.log(`✅ Saved ${live.length} live matches`);
-    
+
     fs.writeFileSync(
       path.join(dataDir, 'today-matches.json'),
       JSON.stringify(today, null, 2)
     );
     console.log(`✅ Saved ${today.length} today's matches`);
-    
+
     fs.writeFileSync(
       path.join(dataDir, 'upcoming-matches.json'),
       JSON.stringify(upcoming, null, 2)

@@ -1,21 +1,17 @@
+const fs = require('fs');
+const path = require('path');
+const { v4: uuidv4 } = require('uuid');
+const fetch = require('node-fetch');
+const Parser = require('rss-parser');
 const dotenv = require('dotenv');
+
 dotenv.config();
 
-import fs from 'fs';
-import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
-import fetch from 'node-fetch';
-import Parser from 'rss-parser';
-
-// Загрузка ключей и URL из .env
 const OPENAI_API_KEY = process.env.VITE_OPENAI_API_KEY;
-const NEWS_SOURCE_URL =
-  process.env.VITE_NEWS_SOURCE_URL ||
-  'https://ajansspor.com/rss';
+const NEWS_SOURCE_URL = process.env.VITE_NEWS_SOURCE_URL || 'https://ajansspor.com/rss';
 
 console.log('Using feed URL:', NEWS_SOURCE_URL);
 
-// Инициализируем парсер с кастомными полями для медиа
 const parser = new Parser({
   customFields: {
     item: [
@@ -36,13 +32,10 @@ async function fetchArticlesFromSource() {
     const feed = await parser.parseURL(NEWS_SOURCE_URL);
 
     return feed.items.map(item => {
-      // 1) Пробуем enclosure.url
       let imageUrl = item.enclosure?.url;
-      // 2) Если нет — media:content.url
       if (!imageUrl && item['media:content']?.url) {
         imageUrl = item['media:content'].url;
       }
-      // 3) Если нет — ищем в HTML
       if (!imageUrl) {
         const imgMatch = item.content?.match(/<img[^>]+src="([^"]+)"/);
         imageUrl = imgMatch?.[1] || null;
@@ -51,7 +44,7 @@ async function fetchArticlesFromSource() {
       return {
         title: item.title,
         content: item.contentSnippet || item.content,
-        imageUrl,  // здесь уже либо реальная ссылка из RSS, либо null
+        imageUrl,
         publishedAt: item.pubDate || new Date().toISOString(),
         source: 'AjansSpor',
         category: 'Football News',
