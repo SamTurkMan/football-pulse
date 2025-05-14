@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Sun, Moon } from 'lucide-react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Header from './components/Header';
 import NewsSection from './components/NewsSection';
 import ScoresSection from './components/ScoresSection';
 import Footer from './components/Footer';
+import ArticlePage from './components/ArticlePage';
 
 function App() {
   const [darkMode, setDarkMode] = useState(false);
@@ -13,32 +14,29 @@ function App() {
   };
 
   return (
-    <div className={`min-h-screen flex flex-col ${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
-      <Header />
-      
-      <div className="fixed top-4 right-4 z-50">
-        <button 
-          onClick={toggleDarkMode} 
-          className={`p-2 rounded-full ${darkMode ? 'bg-gray-800 text-yellow-400' : 'bg-white text-gray-800'} shadow-lg transition-all duration-300`}
-          aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
-        >
-          {darkMode ? <Sun size={20} /> : <Moon size={20} />}
-        </button>
-      </div>
+    <BrowserRouter>
+      <div className={`min-h-screen flex flex-col ${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
+        <Header darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
 
-      <main className="flex-grow container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
-            <NewsSection darkMode={darkMode} />
-          </div>
-          <div className="lg:col-span-1">
-            <ScoresSection darkMode={darkMode} />
-          </div>
-        </div>
-      </main>
-      
-      <Footer darkMode={darkMode} />
-    </div>
+        <main className="flex-grow container mx-auto px-4 py-8">
+          <Routes>
+            <Route path="/" element={
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2">
+                  <NewsSection darkMode={darkMode} />
+                </div>
+                <div className="lg:col-span-1">
+                  <ScoresSection darkMode={darkMode} />
+                </div>
+              </div>
+            } />
+            <Route path="/article/:id" element={<ArticlePage darkMode={darkMode} />} />
+          </Routes>
+        </main>
+        
+        <Footer darkMode={darkMode} />
+      </div>
+    </BrowserRouter>
   );
 }
 
