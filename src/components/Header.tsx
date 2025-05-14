@@ -8,19 +8,19 @@ const Header: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-center justify-between">
           <div className="flex items-center mb-4 sm:mb-0">
             <Soccer size={32} className="mr-2 text-green-400" />
-            <h1 className="text-2xl font-bold">FootballPulse</h1>
+            <h1 className="text-2xl font-bold">FutbolNabız</h1>
           </div>
           
           <nav>
             <ul className="flex space-x-6">
               <li>
                 <a href="#news" className="hover:text-green-400 transition-colors duration-200 font-medium">
-                  News
+                  Haberler
                 </a>
               </li>
               <li>
                 <a href="#scores" className="hover:text-green-400 transition-colors duration-200 font-medium">
-                  Scores
+                  Puanlar
                 </a>
               </li>
             </ul>
