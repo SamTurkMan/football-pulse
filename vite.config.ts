@@ -7,8 +7,11 @@ export default defineConfig({
     include: ['react-router-dom']
   },
   build: {
+    commonjsOptions: {
+      include: [/react-router-dom/, /node_modules/],
+    },
     rollupOptions: {
-      external: []
+      external: [],
     }
   }
 });
