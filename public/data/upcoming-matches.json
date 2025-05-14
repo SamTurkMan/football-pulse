@@ -1,1 +1,38 @@
-[]
+[
+  {
+    "id": "upcoming1",
+    "status": "Scheduled",
+    "time": "2025-06-11T15:00:00Z",
+    "league": "Premier League",
+    "homeTeam": {
+      "id": "liverpool",
+      "name": "Liverpool",
+      "logo": "https://via.placeholder.com/30/FF0000/FFFFFF?text=LIV",
+      "score": 0
+    },
+    "awayTeam": {
+      "id": "tottenham",
+      "name": "Tottenham",
+      "logo": "https://via.placeholder.com/30/FFFFFF/000000?text=TOT",
+      "score": 0
+    }
+  },
+  {
+    "id": "upcoming2",
+    "status": "Scheduled",
+    "time": "2025-06-11T19:45:00Z",
+    "league": "La Liga",
+    "homeTeam": {
+      "id": "atletico",
+      "name": "Atletico Madrid",
+      "logo": "https://via.placeholder.com/30/FF0000/FFFFFF?text=ATM",
+      "score": 0
+    },
+    "awayTeam": {
+      "id": "sevilla",
+      "name": "Sevilla",
+      "logo": "https://via.placeholder.com/30/FFFFFF/FF0000?text=SEV",
+      "score": 0
+    }
+  }
+]

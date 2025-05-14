@@ -12,21 +12,21 @@ const Footer: React.FC<FooterProps> = ({ darkMode }) => {
         <div className="flex flex-col items-center justify-center">
           <div className="flex items-center mb-4">
             <Soccer size={24} className="mr-2 text-blue-600" />
-            <h2 className="text-xl font-bold">FutbolNabız</h2>
+            <h2 className="text-xl font-bold">FootballPulse</h2>
           </div>
           
           <p className="text-sm text-center mb-4">
-            Her saat güncellenen otomatik futbol haberleri ve skorları.
+            Automated football news and scores, updated every hour.
           </p>
           
           <div className="flex items-center text-sm">
-            <span>İle yapıldı</span>
+            <span>Made with</span>
             <Heart size={16} className="mx-1 text-red-500" />
-            <span>futbol hayranları için</span>
+            <span>for football fans</span>
           </div>
           
           <div className="mt-6 text-xs">
-            &copy; {new Date().getFullYear()} FutbolNabız. Her hakkı saklıdır.
+            &copy; {new Date().getFullYear()} FootballPulse. All rights reserved.
           </div>
         </div>
       </div>

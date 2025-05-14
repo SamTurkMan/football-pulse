@@ -44,7 +44,7 @@ const NewsSection: React.FC<NewsSectionProps> = ({ darkMode }) => {
   return (
     <section id="news" className={`mb-12 ${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg p-6`}>
       <h2 className="text-2xl font-bold mb-6 pb-2 border-b border-gray-300 dark:border-gray-700">
-        Son Futbol Haberleri
+        Latest Football News
       </h2>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -66,7 +66,7 @@ const NewsSection: React.FC<NewsSectionProps> = ({ darkMode }) => {
             onClick={loadMore}
             className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-full shadow transition-colors duration-200"
           >
-            Daha Fazlasını Yükle
+            Load More
           </button>
         </div>
       )}

@@ -42,7 +42,7 @@ const ScoresSection: React.FC<ScoresSectionProps> = ({ darkMode }) => {
   return (
     <section id="scores" className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg p-6`}>
       <h2 className="text-2xl font-bold mb-6 pb-2 border-b border-gray-300 dark:border-gray-700">
-        Futbol Skorları
+        Football Scores
       </h2>
       
       <div className="flex mb-6 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
@@ -54,7 +54,7 @@ const ScoresSection: React.FC<ScoresSectionProps> = ({ darkMode }) => {
               : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
           }`}
         >
-          Canlı
+          Live
         </button>
         <button
           onClick={() => setActiveTab('today')}
@@ -64,7 +64,7 @@ const ScoresSection: React.FC<ScoresSectionProps> = ({ darkMode }) => {
               : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
           }`}
         >
-          Bugün
+          Today
         </button>
         <button
           onClick={() => setActiveTab('upcoming')}
@@ -74,7 +74,7 @@ const ScoresSection: React.FC<ScoresSectionProps> = ({ darkMode }) => {
               : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
           }`}
         >
-          Yaklaşan
+          Upcoming
         </button>
       </div>
       
@@ -91,14 +91,14 @@ const ScoresSection: React.FC<ScoresSectionProps> = ({ darkMode }) => {
           ))
         ) : (
           <div className={`text-center py-8 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-            <p>Eşleşme bulunamadı.</p>
+            <p>No matches available.</p>
           </div>
         )}
       </div>
       
       {activeTab === 'live' && matches.length > 0 && (
         <div className="text-xs text-gray-500 dark:text-gray-400 mt-4 text-center">
-          Canlı skorlar her dakika otomatik olarak güncellenir
+          Live scores update automatically every minute
         </div>
       )}
     </section>

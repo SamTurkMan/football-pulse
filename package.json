@@ -2,6 +2,7 @@
   "name": "football-pulse",
   "private": true,
   "version": "1.0.0",
+  "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -11,17 +12,18 @@
     "fetch-scores": "node scripts/fetch-scores.js"
   },
   "dependencies": {
-    "dotenv": "^16.5.0",
     "lucide-react": "^0.344.0",
-    "node-fetch": "^3.3.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^7.6.0",
+    "react-router-dom": "^6.22.3",
+    "uuid": "^9.0.1",
+    "node-fetch": "^3.3.2",
     "rss-parser": "^3.13.0",
-    "uuid": "^9.0.1"
+    "dotenv": "^16.4.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",
+    "@tailwindcss/typography": "^0.5.10",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",

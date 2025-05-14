@@ -63,7 +63,7 @@ const NewsCard: React.FC<NewsCardProps> = ({ article, darkMode }) => {
             href={`/article/${article.id}`} 
             className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium text-sm"
           >
-            Devamını oku
+            Read More
           </a>
           
           <button 

@@ -18,10 +18,10 @@ const Header: React.FC<HeaderProps> = ({ darkMode, toggleDarkMode }) => {
           
           <nav className="flex items-center space-x-6">
             <a href="#news" className="hover:text-green-400 transition-colors duration-200 font-medium">
-              Haberler
+              News
             </a>
             <a href="#scores" className="hover:text-green-400 transition-colors duration-200 font-medium">
-              Puanlar
+              Scores
             </a>
             <button 
               onClick={toggleDarkMode} 
