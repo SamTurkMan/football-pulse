@@ -10,7 +10,7 @@ const headers = {
   'x-rapidapi-host': 'v3.football.api-sports.io'
 };
 
-const dataDir = path.join(process.cwd(), 'data');
+const dataDir = path.join(process.cwd(), 'public', 'data');
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }

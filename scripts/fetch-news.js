@@ -7,15 +7,23 @@ import { v4 as uuidv4 } from 'uuid';
 import fetch from 'node-fetch';
 import Parser from 'rss-parser';
 
-// Загрузка ключей и URL из .env либо использование значения по умолчанию
+// Загрузка ключей и URL из .env
 const OPENAI_API_KEY = process.env.VITE_OPENAI_API_KEY;
 const NEWS_SOURCE_URL =
   process.env.VITE_NEWS_SOURCE_URL ||
-  'https://www.caughtoffside.com/feed/';
+  'https://ajansspor.com/rss';
 
 console.log('Using feed URL:', NEWS_SOURCE_URL);
 
-const parser = new Parser();
+// Инициализируем парсер с кастомными полями для медиа
+const parser = new Parser({
+  customFields: {
+    item: [
+      ['enclosure', 'enclosure', { keepArray: false }],
+      ['media:content', 'media:content', { keepArray: false }],
+    ]
+  }
+});
 
 const dataDir = path.join(process.cwd(), 'public', 'data');
 if (!fs.existsSync(dataDir)) {
@@ -28,17 +36,24 @@ async function fetchArticlesFromSource() {
     const feed = await parser.parseURL(NEWS_SOURCE_URL);
 
     return feed.items.map(item => {
-      const imageMatch = item.content?.match(/<img[^>]+src="([^"]+)"/);
-      const imageUrl =
-        imageMatch?.[1] ||
-        'https://images.pexels.com/photos/46798/the-ball-stadion-football-the-pitch-46798.jpeg';
+      // 1) Пробуем enclosure.url
+      let imageUrl = item.enclosure?.url;
+      // 2) Если нет — media:content.url
+      if (!imageUrl && item['media:content']?.url) {
+        imageUrl = item['media:content'].url;
+      }
+      // 3) Если нет — ищем в HTML
+      if (!imageUrl) {
+        const imgMatch = item.content?.match(/<img[^>]+src="([^"]+)"/);
+        imageUrl = imgMatch?.[1] || null;
+      }
 
       return {
         title: item.title,
         content: item.contentSnippet || item.content,
-        imageUrl: imageUrl,
+        imageUrl,  // здесь уже либо реальная ссылка из RSS, либо null
         publishedAt: item.pubDate || new Date().toISOString(),
-        source: 'CaughtOffside',
+        source: 'AjansSpor',
         category: 'Football News',
         url: item.link
       };
@@ -64,7 +79,7 @@ async function rewriteArticle(article) {
         messages: [
           {
             role: 'user',
-            content: `Rewrite this football article in a unique way, maintaining all facts but using different wording. Make it engaging and professional:\n\nTitle: ${article.title}\n\nContent: ${article.content}\n\nReturn the response in JSON format with 'title' and 'content' fields.`
+            content: `Rewrite this football article in a unique way in Turkish, preserving all facts but using different wording. Return JSON with 'title' and 'content'.\n\nTitle: ${article.title}\nContent: ${article.content}`
           }
         ],
         temperature: 0.7
@@ -72,13 +87,13 @@ async function rewriteArticle(article) {
     });
 
     const data = await response.json();
-    const rewrittenContent = JSON.parse(data.choices[0].message.content);
+    const rewritten = JSON.parse(data.choices[0].message.content);
 
     return {
       ...article,
-      title: rewrittenContent.title,
-      content: rewrittenContent.content,
-      summary: rewrittenContent.content.substring(0, 150) + '...'
+      title: rewritten.title,
+      content: rewritten.content,
+      summary: rewritten.content.slice(0, 150) + '...'
     };
   } catch (error) {
     console.error('Error rewriting article:', error);
@@ -89,56 +104,35 @@ async function rewriteArticle(article) {
 function saveArticlesToFile(articles) {
   try {
     const filePath = path.join(dataDir, 'articles.json');
+    const existing = fs.existsSync(filePath)
+      ? JSON.parse(fs.readFileSync(filePath, 'utf8'))
+      : [];
 
-    let existingArticles = [];
-    if (fs.existsSync(filePath)) {
-      existingArticles = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-    }
+    const withIds = articles.map(a => ({ id: uuidv4(), ...a }));
+    const all = [...withIds, ...existing];
+    const unique = Array.from(new Map(all.map(a => [a.url, a])).values());
 
-    const articlesWithIds = articles.map(article => ({
-      id: uuidv4(),
-      ...article
-    }));
+    unique.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+    const limited = unique.slice(0, 50);
 
-    const allArticles = [...articlesWithIds, ...existingArticles];
-
-    const uniqueArticles = Array.from(
-      new Map(allArticles.map(a => [a.title, a])).values()
-    );
-
-    uniqueArticles.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
-
-    const limitedArticles = uniqueArticles.slice(0, 50);
-
-    fs.writeFileSync(filePath, JSON.stringify(limitedArticles, null, 2));
-    console.log(`Saved ${limitedArticles.length} articles to ${filePath}`);
-  } catch (error) {
-    console.error('Error saving articles to file:', error);
+    fs.writeFileSync(filePath, JSON.stringify(limited, null, 2));
+    console.log(`Saved ${limited.length} articles to ${filePath}`);
+  } catch (err) {
+    console.error('Error saving articles:', err);
   }
 }
 
 async function main() {
-  try {
-    const articles = await fetchArticlesFromSource();
-
-    if (articles.length === 0) {
-      console.log('No articles found. Exiting.');
-      return;
-    }
-
-    console.log(`Found ${articles.length} articles. Processing...`);
-
-    const rewrittenArticles = [];
-    for (const article of articles) {
-      const rewrittenArticle = await rewriteArticle(article);
-      rewrittenArticles.push(rewrittenArticle);
-    }
-
-    saveArticlesToFile(rewrittenArticles);
-    console.log('Article processing completed successfully.');
-  } catch (error) {
-    console.error('Error in main process:', error);
+  const articles = await fetchArticlesFromSource();
+  if (!articles.length) {
+    console.log('No articles found. Exiting.');
+    return;
   }
+
+  console.log(`Found ${articles.length} articles. Rewriting...`);
+  const rewritten = await Promise.all(articles.map(rewriteArticle));
+  saveArticlesToFile(rewritten);
+  console.log('Done.');
 }
 
 main();
