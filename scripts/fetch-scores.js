@@ -15,10 +15,11 @@ if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
 
+// Live Matches in Turkey
 async function fetchLiveMatches() {
   try {
-    console.log('Fetching live matches...');
-    const response = await fetch(`${BASE_URL}/fixtures?live=all`, { headers });
+    console.log('Fetching live matches in Turkey...');
+    const response = await fetch(`${BASE_URL}/fixtures?live=all&country=Turkey`, { headers });
     const data = await response.json();
 
     if (!data.response) {
@@ -28,7 +29,7 @@ async function fetchLiveMatches() {
     return data.response.map(match => ({
       id: match.fixture.id.toString(),
       status: match.fixture.status.short,
-      time: `${match.fixture.status.elapsed}'`,
+      time: `${match.fixture.status.elapsed || 0}'`,
       league: match.league.name,
       homeTeam: {
         id: match.teams.home.id.toString(),
@@ -49,11 +50,12 @@ async function fetchLiveMatches() {
   }
 }
 
+// Today's Matches in Turkey
 async function fetchTodayMatches() {
   try {
-    console.log('Fetching today\'s matches...');
+    console.log('Fetching today\'s matches in Turkey...');
     const date = new Date().toISOString().split('T')[0];
-    const response = await fetch(`${BASE_URL}/fixtures?date=${date}`, { headers });
+    const response = await fetch(`${BASE_URL}/fixtures?date=${date}&country=Turkey`, { headers });
     const data = await response.json();
 
     if (!data.response) {
@@ -84,16 +86,17 @@ async function fetchTodayMatches() {
   }
 }
 
+// Upcoming Matches in Turkey (next 7 days)
 async function fetchUpcomingMatches() {
   try {
-    console.log('Fetching upcoming matches...');
-    const date = new Date().toISOString().split('T')[0];
+    console.log('Fetching upcoming matches in Turkey...');
+    const today = new Date().toISOString().split('T')[0];
     const nextWeek = new Date();
     nextWeek.setDate(nextWeek.getDate() + 7);
     const toDate = nextWeek.toISOString().split('T')[0];
-    
+
     const response = await fetch(
-      `${BASE_URL}/fixtures?from=${date}&to=${toDate}&status=NS`,
+      `${BASE_URL}/fixtures?from=${today}&to=${toDate}&status=NS&country=Turkey`,
       { headers }
     );
     const data = await response.json();
@@ -126,40 +129,42 @@ async function fetchUpcomingMatches() {
   }
 }
 
-function saveMatchesToFiles(liveMatches, todayMatches, upcomingMatches) {
+// Save to JSON files
+function saveMatchesToFiles(live, today, upcoming) {
   try {
     fs.writeFileSync(
-      path.join(dataDir, 'live-matches.json'), 
-      JSON.stringify(liveMatches, null, 2)
+      path.join(dataDir, 'live-matches.json'),
+      JSON.stringify(live, null, 2)
     );
-    console.log(`Saved ${liveMatches.length} live matches`);
+    console.log(`✅ Saved ${live.length} live matches`);
     
     fs.writeFileSync(
-      path.join(dataDir, 'today-matches.json'), 
-      JSON.stringify(todayMatches, null, 2)
+      path.join(dataDir, 'today-matches.json'),
+      JSON.stringify(today, null, 2)
     );
-    console.log(`Saved ${todayMatches.length} today's matches`);
+    console.log(`✅ Saved ${today.length} today's matches`);
     
     fs.writeFileSync(
-      path.join(dataDir, 'upcoming-matches.json'), 
-      JSON.stringify(upcomingMatches, null, 2)
+      path.join(dataDir, 'upcoming-matches.json'),
+      JSON.stringify(upcoming, null, 2)
     );
-    console.log(`Saved ${upcomingMatches.length} upcoming matches`);
+    console.log(`✅ Saved ${upcoming.length} upcoming matches`);
   } catch (error) {
-    console.error('Error saving matches to files:', error);
+    console.error('❌ Error saving match data:', error);
   }
 }
 
+// Run the process
 async function main() {
   try {
     const liveMatches = await fetchLiveMatches();
     const todayMatches = await fetchTodayMatches();
     const upcomingMatches = await fetchUpcomingMatches();
-    
+
     saveMatchesToFiles(liveMatches, todayMatches, upcomingMatches);
-    console.log('Match data processing completed successfully.');
+    console.log('✅ All Turkish match data updated successfully.');
   } catch (error) {
-    console.error('Error in main process:', error);
+    console.error('❌ Error in main():', error);
   }
 }
 
