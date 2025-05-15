@@ -12,11 +12,15 @@ const NEWS_SOURCE_URL = process.env.VITE_NEWS_SOURCE_URL || 'https://www.cnnturk
 
 console.log('Using feed URL:', NEWS_SOURCE_URL);
 
+// Настройка парсера с дополнительными полями для картинок
 const parser = new Parser({
   customFields: {
     item: [
-      ['enclosure', 'enclosure', { keepArray: false }],
-      ['media:content', 'media:content', { keepArray: false }],
+      ['enclosure',       'enclosure',       { keepArray: false }],
+      ['media:content',   'media:content',   { keepArray: false }],
+      ['media:thumbnail', 'media:thumbnail', { keepArray: false }],
+      ['content:encoded', 'content:encoded'],
+      ['image',           'rssImage',        { keepArray: false }]
     ]
   }
 });
@@ -31,24 +35,36 @@ async function fetchArticlesFromSource() {
     console.log(`Fetching articles from ${NEWS_SOURCE_URL}...`);
     const feed = await parser.parseURL(NEWS_SOURCE_URL);
 
+    // Для отладки можно раскомментировать:
+    // console.log('Sample item:', feed.items[0]);
+
     return feed.items.map(item => {
-      let imageUrl = item.enclosure?.url;
-      if (!imageUrl && item['media:content']?.url) {
-        imageUrl = item['media:content'].url;
-      }
+      // Приоритет выбора картинки:
+      // 1) <item><image>…</image>
+      // 2) <enclosure url="…" />
+      // 3) <media:thumbnail url="…" />
+      // 4) <media:content url="…" />
+      let imageUrl =
+        item.rssImage ||
+        item.enclosure?.url ||
+        item['media:thumbnail']?.url ||
+        item['media:content']?.url;
+
+      // Если всё ещё нет картинки, ищем <img> в HTML-контенте
       if (!imageUrl) {
-        const imgMatch = item.content?.match(/<img[^>]+src="([^"]+)"/);
-        imageUrl = imgMatch?.[1] || null;
+        const html = item['content:encoded'] || item.content || '';
+        const match = html.match(/<img[^>]+src="([^"\\]+)"/i);
+        imageUrl = match ? match[1] : null;
       }
 
       return {
-        title: item.title,
-        content: item.contentSnippet || item.content,
+        title:       item.title,
+        content:     item.contentSnippet || item['content:encoded'] || item.content,
         imageUrl,
         publishedAt: item.pubDate || new Date().toISOString(),
-        source: 'AjansSpor',
-        category: 'Football News',
-        url: item.link
+        source:      'CNN Türk',
+        category:    'Football News',
+        url:         item.link
       };
     });
   } catch (error) {
@@ -74,8 +90,8 @@ async function rewriteArticle(article) {
             role: 'user',
             content: `Sen bir spor muhabirisin. Aşağıdaki futbol haberini detaylı, akıcı ve özgün bir şekilde yeniden yaz. Bilgileri koru ama ifadeleri değiştir. Giriş cümlesi dikkat çekici olsun. Uzunluk en az 3 paragraf olsun. Yanıta sadece JSON olarak dön: { "title": "...", "content": "..." }
 
-          Başlık: ${article.title}
-          İçerik: ${article.content}`
+Başlık: ${article.title}
+İçerik: ${article.content}`
           }
         ],
         temperature: 0.7
@@ -87,7 +103,7 @@ async function rewriteArticle(article) {
 
     return {
       ...article,
-      title: rewritten.title,
+      title:   rewritten.title,
       content: rewritten.content,
       summary: rewritten.content.slice(0, 150) + '...'
     };
