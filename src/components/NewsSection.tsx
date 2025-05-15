@@ -42,9 +42,9 @@ const NewsSection: React.FC<NewsSectionProps> = ({ darkMode }) => {
   };
 
   return (
-    <section id="news" className={`mb-12 ${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg p-6`}>
+    <section id="news" className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg p-6`}>
       <h2 className="text-2xl font-bold mb-6 pb-2 border-b border-gray-300 dark:border-gray-700">
-        Latest Football News
+        Son Futbol Haberleri
       </h2>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -66,14 +66,14 @@ const NewsSection: React.FC<NewsSectionProps> = ({ darkMode }) => {
             onClick={loadMore}
             className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-full shadow transition-colors duration-200"
           >
-            Load More
+            Daha Fazla
           </button>
         </div>
       )}
       
       {!hasMore && articles.length > 0 && (
         <p className="mt-8 text-center text-gray-500 dark:text-gray-400">
-          You've reached the end of the news feed.
+          Tüm haberleri gördünüz.
         </p>
       )}
     </section>
