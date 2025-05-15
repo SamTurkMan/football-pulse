@@ -8,7 +8,7 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const OPENAI_API_KEY = process.env.VITE_OPENAI_API_KEY;
-const NEWS_SOURCE_URL = process.env.VITE_NEWS_SOURCE_URL || 'https://ajansspor.com/rss';
+const NEWS_SOURCE_URL = process.env.VITE_NEWS_SOURCE_URL || 'https://www.cnnturk.com/feed/rss/spor/futbol';
 
 console.log('Using feed URL:', NEWS_SOURCE_URL);
 
