@@ -40,18 +40,13 @@ async function fetchArticlesFromSource() {
     console.log(`Fetching articles from ${NEWS_SOURCE_URL}...`);
     const feed = await parser.parseURL(NEWS_SOURCE_URL);
 
-    // Для отладки: посмотрите структуру первого элемента
-    // console.log('Sample item:', feed.items[0]);
-
     return feed.items.map(item => {
-      // Приоритет выбора картинки:
       let imageUrl =
         item.rssImage ||
         item.enclosure?.url ||
         item['media:thumbnail']?.url ||
         item['media:content']?.url;
 
-      // Если всё ещё нет картинки, ищем <img> в HTML-контенте
       if (!imageUrl) {
         const html = item['content:encoded'] || item.content || '';
         const match = html.match(/<img[^>]+src="([^"\\]+)"/i);
@@ -78,6 +73,11 @@ async function rewriteArticle(article) {
   try {
     console.log(`Rewriting article: ${article.title}`);
 
+    const prompt = `Sen bir spor muhabirisin. Aşağıdaki futbol haberini detaylı, akıcı ve özgün bir şekilde yeniden yaz. Bilgileri koru ama ifadeleri değiştir. Giriş cümlesi dikkat çekici olsun. Uzunluk en az 3 paragraf olsun.\n` +
+                   `Yanıta sadece JSON olarak dön ve content alanında gerçek yeni satır karakterleri kullanma; paragraf ayırma için \\n kullan.\n\n` +
+                   `Başlık: ${article.title}\n` +
+                   `İçerik: ${article.content}`;
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -86,12 +86,7 @@ async function rewriteArticle(article) {
       },
       body: JSON.stringify({
         model: 'gpt-4',
-        messages: [
-          {
-            role: 'user',
-            content: `Sen bir spor muhabirisin. Aşağıdaki futbol haberini detaylı, akıcı ve özgün bir şekilde yeniden yaz. Bilgileri koru ama ifadeleri değiştir. Giriş cümlesi dikkat çekici olsun. Uzunluk en az 3 paragraf olsun. Yanıta sadece JSON olarak dön: { \"title\": \"...\", \"content\": \"...\" }\n\nBaşlık: ${article.title}\nİçerik: ${article.content}`
-          }
-        ],
+        messages: [{ role: 'user', content: prompt }],
         temperature: 0.7
       })
     });
@@ -125,7 +120,7 @@ async function rewriteArticle(article) {
 
     return {
       ...article,
-      title:   rewritten.title,
+      title: rewritten.title,
       content: rewritten.content,
       summary: rewritten.content.slice(0, 150) + '...'
     };
@@ -138,12 +133,12 @@ async function rewriteArticle(article) {
 function saveArticlesToFile(articles) {
   try {
     const filePath = path.join(dataDir, 'articles.json');
-    // Полностью перезаписываем файл, чтобы удалить старые записи
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
 
     const withIds = articles.map(a => ({ id: uuidv4(), ...a }));
-    const limited = withIds.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt))
-                            .slice(0, 50);
+    const limited = withIds
+      .sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt))
+      .slice(0, 50);
 
     fs.writeFileSync(filePath, JSON.stringify(limited, null, 2));
     console.log(`Saved ${limited.length} articles to ${filePath}`);
