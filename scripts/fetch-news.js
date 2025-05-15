@@ -72,7 +72,10 @@ async function rewriteArticle(article) {
         messages: [
           {
             role: 'user',
-            content: `Rewrite this football article in a unique way in Turkish, preserving all facts but using different wording. Return JSON with 'title' and 'content'.\n\nTitle: ${article.title}\nContent: ${article.content}`
+            content: `Sen bir spor muhabirisin. Aşağıdaki futbol haberini detaylı, akıcı ve özgün bir şekilde yeniden yaz. Bilgileri koru ama ifadeleri değiştir. Giriş cümlesi dikkat çekici olsun. Uzunluk en az 3 paragraf olsun. Yanıta sadece JSON olarak dön: { "title": "...", "content": "..." }
+
+          Başlık: ${article.title}
+          İçerik: ${article.content}`
           }
         ],
         temperature: 0.7
