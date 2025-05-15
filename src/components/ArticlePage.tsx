@@ -28,7 +28,7 @@ const ArticlePage: React.FC<ArticlePageProps> = ({ darkMode }) => {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
+    return date.toLocaleDateString('tr-TR', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
@@ -45,7 +45,7 @@ const ArticlePage: React.FC<ArticlePageProps> = ({ darkMode }) => {
       .catch(error => console.log('Error sharing:', error));
     } else {
       navigator.clipboard.writeText(window.location.href)
-        .then(() => alert('Link copied to clipboard!'))
+        .then(() => alert('Link kopyalandı!'))
         .catch(err => console.error('Could not copy text: ', err));
     }
   };
@@ -67,9 +67,9 @@ const ArticlePage: React.FC<ArticlePageProps> = ({ darkMode }) => {
   if (!article) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-2xl font-bold mb-4">Article not found</h2>
-        <Link to="/" className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
-          Return to homepage
+        <h2 className="text-2xl font-bold mb-4">Makale bulunamadı</h2>
+        <Link to="/" className="text-accent hover:text-accent-dark transition-colors duration-200">
+          Ana sayfaya dön
         </Link>
       </div>
     );
@@ -79,30 +79,30 @@ const ArticlePage: React.FC<ArticlePageProps> = ({ darkMode }) => {
     <article className="max-w-4xl mx-auto">
       <Link 
         to="/" 
-        className={`inline-flex items-center mb-6 ${
-          darkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'
-        }`}
+        className="inline-flex items-center mb-6 text-gray-600 dark:text-gray-300 hover:text-accent dark:hover:text-accent-light transition-colors duration-200"
       >
         <ChevronLeft size={20} className="mr-1" />
-        Back to news
+        Haberlere dön
       </Link>
 
-      <div className={`rounded-xl overflow-hidden ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
+      <div className="card">
         <div className="relative h-96">
           <img 
             src={article.imageUrl} 
             alt={article.title}
             className="w-full h-full object-cover"
           />
-          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6">
-            <div className="text-white">
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent">
+            <div className="absolute bottom-0 p-6 text-white">
               <div className="mb-2 flex items-center space-x-4">
-                <span className="bg-blue-600 px-3 py-1 rounded-full text-sm font-medium">
+                <span className="bg-accent px-3 py-1 rounded-full text-sm font-medium">
                   {article.category}
                 </span>
                 <div className="flex items-center text-sm">
                   <Calendar size={16} className="mr-1" />
-                  <span>{formatDate(article.publishedAt)}</span>
+                  <time dateTime={article.publishedAt}>
+                    {formatDate(article.publishedAt)}
+                  </time>
                 </div>
               </div>
               <h1 className="text-3xl font-bold">{article.title}</h1>
@@ -113,40 +113,24 @@ const ArticlePage: React.FC<ArticlePageProps> = ({ darkMode }) => {
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="text-sm text-gray-500 dark:text-gray-400">
-              Source: {article.source}
+              Kaynak: {article.source}
             </div>
             <button
               onClick={shareArticle}
-              className={`p-2 rounded-full ${
-                darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
-              } transition-colors duration-200`}
-              aria-label="Share article"
+              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+              aria-label="Haberi paylaş"
             >
               <Share2 size={20} className="text-gray-500 dark:text-gray-400" />
             </button>
           </div>
 
-          <div 
-            className={`prose ${darkMode ? 'prose-invert' : ''} max-w-none`}
-            dangerouslySetInnerHTML={{ __html: article.content }}
-          />
-
-          {article.url && (
-            <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-              <a
-                href={article.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-full transition-colors duration-200"
-              >
-                Read original article
-              </a>
-            </div>
-          )}
+          <div className="prose dark:prose-invert max-w-none">
+            <div dangerouslySetInnerHTML={{ __html: article.content }} />
+          </div>
         </div>
       </div>
     </article>
   );
-}
+};
 
 export default ArticlePage;
