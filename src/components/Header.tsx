@@ -1,5 +1,5 @@
-import React from 'react';
-import { Flame, Sun, Moon } from 'lucide-react';
+import React, { useState } from 'react';
+import { Flame, Sun, Moon, Menu, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface HeaderProps {
@@ -8,6 +8,10 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ darkMode, toggleDarkMode }) => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
+
   return (
     <header className={`sticky top-0 ${darkMode ? 'bg-primary-dark' : 'bg-primary'} text-white shadow-lg z-40`}>
       <div className="container mx-auto px-4 py-4">
@@ -15,34 +19,77 @@ const Header: React.FC<HeaderProps> = ({ darkMode, toggleDarkMode }) => {
           <Link to="/" className="flex items-center space-x-2 group">
             <div className="relative">
               <Flame 
-                size={32} 
+                size={28} 
                 className="text-accent-light transform group-hover:scale-110 transition-transform duration-300" 
               />
-              <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse-fast" />
+              <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full animate-pulse-fast" />
             </div>
-            <h1 className="text-2xl font-bold tracking-tight">FootballPulse</h1>
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight">FootballPulse</h1>
           </Link>
           
-          <nav className="flex items-center space-x-8">
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center space-x-8">
             <Link 
               to="/#news" 
               className="text-accent-light hover:text-white transition-colors duration-200"
             >
-              News
+              Haberler
             </Link>
             <Link 
               to="/#scores" 
               className="text-accent-light hover:text-white transition-colors duration-200"
             >
-              Scores
+              Skorlar
             </Link>
             <button 
               onClick={toggleDarkMode} 
               className="p-2 rounded-full hover:bg-primary-light/10 transition-all duration-200 active:scale-95"
-              aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+              aria-label={darkMode ? "Açık temaya geç" : "Koyu temaya geç"}
             >
               {darkMode ? <Sun size={20} /> : <Moon size={20} />}
             </button>
+          </nav>
+
+          {/* Mobile Menu Button */}
+          <div className="flex items-center space-x-4 md:hidden">
+            <button 
+              onClick={toggleDarkMode} 
+              className="p-2 rounded-full hover:bg-primary-light/10 transition-all duration-200"
+              aria-label={darkMode ? "Açık temaya geç" : "Koyu temaya geç"}
+            >
+              {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+            <button
+              onClick={toggleMenu}
+              className="p-2 rounded-full hover:bg-primary-light/10 transition-all duration-200"
+              aria-label="Toggle menu"
+            >
+              {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Navigation */}
+        <div className={`
+          md:hidden 
+          transition-all duration-300 ease-in-out
+          ${isMenuOpen ? 'max-h-40 opacity-100 mt-4' : 'max-h-0 opacity-0 overflow-hidden'}
+        `}>
+          <nav className="flex flex-col space-y-4 py-4 border-t border-primary-light/10">
+            <Link 
+              to="/#news" 
+              className="text-accent-light hover:text-white transition-colors duration-200"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Haberler
+            </Link>
+            <Link 
+              to="/#scores" 
+              className="text-accent-light hover:text-white transition-colors duration-200"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Skorlar
+            </Link>
           </nav>
         </div>
       </div>
