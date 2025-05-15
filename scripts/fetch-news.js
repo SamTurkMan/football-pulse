@@ -7,7 +7,12 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
-const OPENAI_API_KEY = process.env.VITE_OPENAI_API_KEY;
+// Поддерживаем несколько вариантов имени переменной для OPENAI API ключа
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
+if (!OPENAI_API_KEY) {
+  console.error('Error: OPENAI_API_KEY is not set in environment variables.');
+  process.exit(1);
+}
 const NEWS_SOURCE_URL = process.env.VITE_NEWS_SOURCE_URL || 'https://www.cnnturk.com/feed/rss/spor/futbol';
 
 console.log('Using feed URL:', NEWS_SOURCE_URL);
@@ -35,15 +40,11 @@ async function fetchArticlesFromSource() {
     console.log(`Fetching articles from ${NEWS_SOURCE_URL}...`);
     const feed = await parser.parseURL(NEWS_SOURCE_URL);
 
-    // Для отладки можно раскомментировать:
+    // Для отладки: посмотрите структуру первого элемента
     // console.log('Sample item:', feed.items[0]);
 
     return feed.items.map(item => {
       // Приоритет выбора картинки:
-      // 1) <item><image>…</image>
-      // 2) <enclosure url="…" />
-      // 3) <media:thumbnail url="…" />
-      // 4) <media:content url="…" />
       let imageUrl =
         item.rssImage ||
         item.enclosure?.url ||
@@ -88,18 +89,39 @@ async function rewriteArticle(article) {
         messages: [
           {
             role: 'user',
-            content: `Sen bir spor muhabirisin. Aşağıdaki futbol haberini detaylı, akıcı ve özgün bir şekilde yeniden yaz. Bilgileri koru ama ifadeleri değiştir. Giriş cümlesi dikkat çekici olsun. Uzunluk en az 3 paragraf olsun. Yanıta sadece JSON olarak dön: { "title": "...", "content": "..." }
-
-Başlık: ${article.title}
-İçerik: ${article.content}`
+            content: `Sen bir spor muhabirisin. Aşağıdaki futbol haberini detaylı, akıcı ve özgün bir şekilde yeniden yaz. Bilgileri koru ama ifadeleri değiştir. Giriş cümlesi dikkat çekici olsun. Uzunluk en az 3 paragraf olsun. Yanıta sadece JSON olarak dön: { \"title\": \"...\", \"content\": \"...\" }\n\nBaşlık: ${article.title}\nİçerik: ${article.content}`
           }
         ],
         temperature: 0.7
       })
     });
 
+    if (!response.ok) {
+      console.error(`OpenAI API error: ${response.status} ${response.statusText}`);
+      const errorBody = await response.text();
+      console.error('Response body:', errorBody);
+      return article;
+    }
+
     const data = await response.json();
-    const rewritten = JSON.parse(data.choices[0].message.content);
+    if (!data.choices || !data.choices.length) {
+      console.error('Unexpected OpenAI response format:', JSON.stringify(data));
+      return article;
+    }
+
+    const content = data.choices[0].message?.content;
+    if (!content) {
+      console.error('No message.content in OpenAI response:', JSON.stringify(data));
+      return article;
+    }
+
+    let rewritten;
+    try {
+      rewritten = JSON.parse(content);
+    } catch (parseError) {
+      console.error('Failed to parse JSON from GPT response:', content, parseError);
+      return article;
+    }
 
     return {
       ...article,
@@ -116,16 +138,12 @@ Başlık: ${article.title}
 function saveArticlesToFile(articles) {
   try {
     const filePath = path.join(dataDir, 'articles.json');
-    const existing = fs.existsSync(filePath)
-      ? JSON.parse(fs.readFileSync(filePath, 'utf8'))
-      : [];
+    // Полностью перезаписываем файл, чтобы удалить старые записи
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
 
     const withIds = articles.map(a => ({ id: uuidv4(), ...a }));
-    const all = [...withIds, ...existing];
-    const unique = Array.from(new Map(all.map(a => [a.url, a])).values());
-
-    unique.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
-    const limited = unique.slice(0, 50);
+    const limited = withIds.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt))
+                            .slice(0, 50);
 
     fs.writeFileSync(filePath, JSON.stringify(limited, null, 2));
     console.log(`Saved ${limited.length} articles to ${filePath}`);
