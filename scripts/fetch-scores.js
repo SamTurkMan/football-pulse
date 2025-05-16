@@ -11,46 +11,78 @@ if (!API_KEY) {
 }
 
 const BASE_URL = 'https://v3.football.api-sports.io';
-// Правильные заголовки для API-Sports v3:
 const headers = {
   'Content-Type':     'application/json',
-  'x-apisports-key':  API_KEY,                         // обязательный заголовок :contentReference[oaicite:0]{index=0}
-  'x-rapidapi-host':  'v3.football.api-sports.io'       // только если вы подключаетесь через RapidAPI
+  'x-apisports-key':  API_KEY,
+  'x-rapidapi-host':  'v3.football.api-sports.io'
 };
 
-// Вспомогательная функция для GET-запросов с логированием
+// Утилита для GET-запросов с логированием
 async function apiGet(pathname) {
   const url = `${BASE_URL}${pathname}`;
   console.log(`→ GET ${url}`);
   const res = await fetch(url, { headers });
   console.log(`← ${res.status} ${res.statusText}`);
-  const body = await res.json();
+  const json = await res.json();
   if (!res.ok) {
-    throw new Error(`API error ${res.status}: ${JSON.stringify(body)}`);
+    throw new Error(`API error ${res.status}: ${JSON.stringify(json)}`);
   }
-  return body.response || [];
+  return json.response || [];
 }
 
-// Живые матчи по всей Турции
-async function fetchLiveMatches() {
-  return await apiGet('/fixtures?live=all&country=Turkey');
+// 1) Получаем список всех лиг Турции
+async function fetchLeaguesForCountry(country = 'Turkey') {
+  try {
+    const data = await apiGet(`/leagues?country=${encodeURIComponent(country)}`);
+    const ids  = data.map(item => item.league.id);
+    console.log(`Found ${ids.length} leagues in ${country}:`, ids);
+    return ids;
+  } catch (err) {
+    console.error('Error fetching leagues:', err);
+    return [];
+  }
 }
 
-// Матчи сегодня по Турции
-async function fetchTodayMatches() {
+// 2) Универсальная функция: для списка leagueIds запрашиваем указанный endpointTemplate
+//    endpointTemplate — строка с {league}, например '/fixtures?live=all&league={league}'
+async function fetchFixturesByLeagues(endpointTemplate, leagueIds) {
+  const all = [];
+  for (const id of leagueIds) {
+    try {
+      const path = endpointTemplate.replace('{league}', id);
+      const fixtures = await apiGet(path);
+      console.log(` → League ${id} returned ${fixtures.length} items`);
+      all.push(...fixtures);
+    } catch (err) {
+      console.error(`Error fetching fixtures for league ${id}:`, err);
+    }
+  }
+  return all;
+}
+
+// 3) Собираем живые матчи
+async function fetchLiveMatches(leagueIds) {
+  return fetchFixturesByLeagues('/fixtures?live=all&league={league}', leagueIds);
+}
+
+// 4) Собираем матчи за сегодня
+async function fetchTodayMatches(leagueIds) {
   const date = new Date().toISOString().split('T')[0];
-  return await apiGet(`/fixtures?date=${date}&country=Turkey`);
+  return fetchFixturesByLeagues(`/fixtures?date=${date}&league={league}`, leagueIds);
 }
 
-// Предстоящие матчи (следующие 7 дней) по Турции
-async function fetchUpcomingMatches() {
+// 5) Собираем предстоящие матчи на следующую неделю
+async function fetchUpcomingMatches(leagueIds) {
   const today = new Date().toISOString().split('T')[0];
   const next  = new Date(); next.setDate(next.getDate() + 7);
   const to    = next.toISOString().split('T')[0];
-  return await apiGet(`/fixtures?from=${today}&to=${to}&status=NS&country=Turkey`);
+  return fetchFixturesByLeagues(
+    `/fixtures?from=${today}&to=${to}&status=NS&league={league}`,
+    leagueIds
+  );
 }
 
-// Приводим данные к нужному формату
+// 6) Приводим каждый match к чистому JSON
 function normalize(matches) {
   return matches.map(m => ({
     id:       `${m.fixture.id}`,
@@ -76,7 +108,7 @@ function normalize(matches) {
   }));
 }
 
-// Сохраняем JSON-файлы в public/data/
+// 7) Сохраняем всё в public/data/
 function saveMatches(live, today, upcoming) {
   const dir = path.join(process.cwd(), 'public', 'data');
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -94,20 +126,27 @@ function saveMatches(live, today, upcoming) {
     JSON.stringify(normalize(upcoming), null, 2)
   );
 
-  console.log(
-    `✅ Saved: live ${live.length}, today ${today.length}, upcoming ${upcoming.length}`
-  );
+  console.log(`✅ Saved: live ${live.length}, today ${today.length}, upcoming ${upcoming.length}`);
 }
 
-// Главная функция
+// Запускаем весь процесс
 (async () => {
   try {
-    const live     = await fetchLiveMatches();
-    const today    = await fetchTodayMatches();
-    const upcoming = await fetchUpcomingMatches();
+    const leagueIds = await fetchLeaguesForCountry('Turkey');
+    if (!leagueIds.length) {
+      console.log('No Turkish leagues found — exiting.');
+      return;
+    }
+
+    const [live, today, upcoming] = await Promise.all([
+      fetchLiveMatches(leagueIds),
+      fetchTodayMatches(leagueIds),
+      fetchUpcomingMatches(leagueIds)
+    ]);
+
     saveMatches(live, today, upcoming);
   } catch (err) {
-    console.error('Fatal error:', err);
+    console.error('Fatal error in main():', err);
     process.exit(1);
   }
 })();
