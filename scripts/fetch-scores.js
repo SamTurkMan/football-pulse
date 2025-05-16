@@ -11,117 +11,118 @@ if (!API_KEY) {
   process.exit(1);
 }
 const BASE_URL   = 'https://apiv3.apifootball.com/';
-const LEAGUE_IDS = [318, 319, 320, 321, 322, 323, 532]; // ваши ID лиг
+const LEAGUE_IDS = [318, 319, 320, 321, 322, 323, 532]; // ID ваших лиг
 
 // ==================== Утилита запроса ====================
 async function apiGet(params) {
   const url = new URL(BASE_URL);
-  // сначала APIkey
   url.searchParams.set('APIkey', API_KEY);
-  // потом все ваши params
-  for (const [k, v] of Object.entries(params)) {
+  for (const [k,v] of Object.entries(params)) {
     url.searchParams.set(k, v);
   }
   console.log(`→ GET ${url}`);
   const res  = await fetch(url);
   const body = await res.json();
-
-  // Если APIfootball вернул объект ошибки — считаем, что матчей нет
   if (!Array.isArray(body)) {
-    console.warn(`⚠️ APIfootball warning for action=${params.action} league_id=${params.league_id}:`, body);
+    console.warn(`⚠️ Warning for ${params.action || ''}:`, body);
     return [];
   }
   return body;
 }
 
-// ==================== Нормализация и сохранение ====================
-function normalize(matches) {
-  return matches.map(m => ({
-    id:       m.match_id,
-    status:   m.match_status,
-    time:     m.match_time || m.match_date,
-    league:   m.league_name,
-    homeTeam: {
-      id:    m.match_hometeam_id,
-      name:  m.match_hometeam_name,
-      logo:  m.home_team_logo || null,
-      score: m.match_hometeam_score
-    },
-    awayTeam: {
-      id:    m.match_awayteam_id,
-      name:  m.match_awayteam_name,
-      logo:  m.away_team_logo || null,
-      score: m.match_awayteam_score
-    }
-  }));
+// ==================== Собираем логотипы ====================
+async function buildLogosMap() {
+  const map = {};
+  for (const lid of LEAGUE_IDS) {
+    // тащим команды лиги
+    const teams = await apiGet({ action:'get_teams', league_id: lid });
+    teams.forEach(t => {
+      // запоминаем логотип по id команды
+      if (t.team_id && t.team_logo) {
+        map[t.team_id] = t.team_logo;
+      }
+    });
+  }
+  return map;
 }
 
-function saveJSON(filename, arr) {
+// ==================== Нормализация матча ====================
+function normalize(matches, logos) {
+  return matches.map(m => {
+    const hid = m.match_hometeam_id;
+    const aid = m.match_awayteam_id;
+    return {
+      id:       m.match_id,
+      status:   m.match_status,
+      time:     m.match_time || m.match_date,
+      league:   m.league_name,
+      homeTeam: {
+        id:    hid,
+        name:  m.match_hometeam_name,
+        logo:  logos[hid] || null,
+        score: m.match_hometeam_score
+      },
+      awayTeam: {
+        id:    aid,
+        name:  m.match_awayteam_name,
+        logo:  logos[aid] || null,
+        score: m.match_awayteam_score
+      }
+    };
+  });
+}
+
+// ==================== Запись файла ====================
+function saveJSON(filename, arr, logos) {
   const uniq = Array.from(new Map(arr.map(m => [m.match_id, m])).values());
+  const data = normalize(uniq, logos);
   const file = path.join(process.cwd(), 'public', 'data', filename);
-  fs.writeFileSync(file, JSON.stringify(normalize(uniq), null, 2));
-  console.log(`✅ ${filename}: saved ${uniq.length} items`);
+  fs.writeFileSync(file, JSON.stringify(data, null, 2));
+  console.log(`✅ ${filename}: saved ${data.length} items`);
 }
 
 // ==================== Основной процесс ====================
 (async () => {
   try {
-    const today = new Date().toISOString().split('T')[0];
-    const next  = new Date();
-    next.setDate(next.getDate() + 7);
-    const to    = next.toISOString().split('T')[0];
+    // 1) Собираем карту team_id → team_logo
+    const logosMap = await buildLogosMap();
 
-    const liveAll     = [];
-    const todayAll    = [];
+    // 2) Даты
+    const today = new Date().toISOString().slice(0,10);
+    const next  = new Date();
+    next.setDate(next.getDate()+7);
+    const to    = next.toISOString().slice(0,10);
+
+    // 3) Собираем «live», «today», «upcoming»
+    const liveAll = [];
+    const todayAll = [];
     const upcomingAll = [];
 
-    for (const league_id of LEAGUE_IDS) {
-      // 1) live-матчи
-      try {
-        const live = await apiGet({ action: 'get_live_scores', league_id });
-        liveAll.push(...live);
-      } catch (err) {
-        console.error(`Error fetching live_scores for league ${league_id}:`, err);
-      }
-
-      // 2) матчи сегодня
-      try {
-        const td = await apiGet({
-          action:    'get_events',
-          league_id,
-          from:      today,
-          to:        today
-        });
-        todayAll.push(...td);
-      } catch (err) {
-        console.error(`Error fetching today's events for league ${league_id}:`, err);
-      }
-
-      // 3) матчи на неделю вперёд
-      try {
-        const up = await apiGet({
-          action:    'get_events',
-          league_id,
-          from:      today,
-          to:        to
-        });
-        upcomingAll.push(...up);
-      } catch (err) {
-        console.error(`Error fetching upcoming events for league ${league_id}:`, err);
-      }
+    for (const lid of LEAGUE_IDS) {
+      // live
+      liveAll.push(...await apiGet({ action:'get_live_scores', league_id: lid }));
+      // today
+      todayAll.push(
+        ...await apiGet({ action:'get_events', league_id: lid, from: today, to: today })
+      );
+      // upcoming
+      upcomingAll.push(
+        ...await apiGet({ action:'get_events', league_id: lid, from: today, to })
+      );
     }
 
-    // Убедимся, что директория есть
+    // 4) Убеждаемся, что папка есть
     const dir = path.join(process.cwd(), 'public', 'data');
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
-    saveJSON('live-matches.json',     liveAll);
-    saveJSON('today-matches.json',    todayAll);
-    saveJSON('upcoming-matches.json', upcomingAll);
+    // 5) Сохраняем
+    saveJSON('live-matches.json',     liveAll,     logosMap);
+    saveJSON('today-matches.json',    todayAll,    logosMap);
+    saveJSON('upcoming-matches.json', upcomingAll, logosMap);
 
     console.log('⚽ All done!');
-  } catch (fatal) {
-    console.error('Fatal error in main():', fatal);
+  } catch (err) {
+    console.error('Fatal error:', err);
     process.exit(1);
   }
 })();
