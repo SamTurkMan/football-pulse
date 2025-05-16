@@ -1,5 +1,5 @@
 import React from 'react';
-import { Wallpaper as SoccerBall } from 'lucide-react';
+import { User } from 'lucide-react';
 
 interface ScoreCardSkeletonProps {
   darkMode: boolean;
@@ -15,7 +15,7 @@ const ScoreCardSkeleton: React.FC<ScoreCardSkeletonProps> = ({ darkMode }) => {
       
       <div className="flex items-center">
         <div className="flex items-center space-x-2 w-[110px]">
-          <SoccerBall size={20} className="text-gray-300 dark:text-gray-600 flex-shrink-0" />
+          <User size={20} className="text-gray-300 dark:text-gray-600 flex-shrink-0" />
           <div className="h-4 flex-1 bg-gray-300 dark:bg-gray-600 rounded"></div>
         </div>
         
@@ -25,7 +25,7 @@ const ScoreCardSkeleton: React.FC<ScoreCardSkeletonProps> = ({ darkMode }) => {
         
         <div className="flex items-center space-x-2 w-[110px] justify-end">
           <div className="h-4 flex-1 bg-gray-300 dark:bg-gray-600 rounded"></div>
-          <SoccerBall size={20} className="text-gray-300 dark:text-gray-600 flex-shrink-0" />
+          <User size={20} className="text-gray-300 dark:text-gray-600 flex-shrink-0" />
         </div>
       </div>
     </div>

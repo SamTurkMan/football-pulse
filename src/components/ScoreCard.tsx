@@ -1,5 +1,5 @@
 import React from 'react';
-import { Wallpaper as SoccerBall } from 'lucide-react';
+import { User } from 'lucide-react';
 import { Match } from '../types/Match';
 
 interface ScoreCardProps {
@@ -37,16 +37,13 @@ const ScoreCard: React.FC<ScoreCardProps> = ({ match, darkMode }) => {
   };
 
   const truncateTeamName = (name: string) => {
-    // Common words to remove
     const wordsToRemove = ['Football Club', 'FC', 'United', 'City', 'Athletic'];
     
-    // First try removing common words
     let shortened = name;
     wordsToRemove.forEach(word => {
       shortened = shortened.replace(new RegExp(word, 'gi'), '').trim();
     });
     
-    // If still too long, take the first word
     if (shortened.length > 10) {
       shortened = shortened.split(' ')[0];
     }
@@ -55,7 +52,7 @@ const ScoreCard: React.FC<ScoreCardProps> = ({ match, darkMode }) => {
   };
 
   return (
-    <div className={`flex-shrink-0 w-[280px] rounded-lg ${darkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-gray-50'} p-3 transition-colors duration-200 shadow-md`}>
+    <div className={`flex-shrink-0 w-[280px] rounded-lg ${darkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-gray-50'} p-3 transition-all duration-200 shadow-md`}>
       <div className="text-xs font-medium mb-2.5 flex justify-between items-center">
         <span className="text-accent-light truncate max-w-[180px]">{match.league}</span>
         <span className={`${getStatusColor(match.status)} ml-2 flex-shrink-0`}>
@@ -65,27 +62,41 @@ const ScoreCard: React.FC<ScoreCardProps> = ({ match, darkMode }) => {
       
       <div className="flex items-center">
         <div className="flex items-center space-x-2 w-[110px]">
-          <SoccerBall size={20} className="text-white flex-shrink-0" />
-          <span className="font-medium text-sm truncate" title={match.homeTeam.name}>
+          <User 
+            size={20} 
+            className="text-white/80 flex-shrink-0 animate-pulse-fast"
+          />
+          <span 
+            className="font-medium text-sm truncate text-white transition-all duration-300
+                     [text-shadow:_0_0_10px_rgba(255,255,255,0.5)] hover:[text-shadow:_0_0_15px_rgba(255,255,255,0.8)]" 
+            title={match.homeTeam.name}
+          >
             {truncateTeamName(match.homeTeam.name)}
           </span>
         </div>
         
         <div className="flex-shrink-0 w-[44px] text-center mx-2">
           {match.status.toLowerCase() === 'scheduled' ? (
-            <div className="text-sm font-bold">vs</div>
+            <div className="text-sm font-bold text-white">vs</div>
           ) : (
-            <div className="text-sm font-bold tabular-nums">
+            <div className="text-sm font-bold tabular-nums text-white">
               {match.homeTeam.score}-{match.awayTeam.score}
             </div>
           )}
         </div>
         
         <div className="flex items-center space-x-2 w-[110px] justify-end">
-          <span className="font-medium text-sm truncate text-right" title={match.awayTeam.name}>
+          <span 
+            className="font-medium text-sm truncate text-right text-white transition-all duration-300
+                     [text-shadow:_0_0_10px_rgba(255,255,255,0.5)] hover:[text-shadow:_0_0_15px_rgba(255,255,255,0.8)]" 
+            title={match.awayTeam.name}
+          >
             {truncateTeamName(match.awayTeam.name)}
           </span>
-          <SoccerBall size={20} className="text-white flex-shrink-0" />
+          <User 
+            size={20} 
+            className="text-white/80 flex-shrink-0 animate-pulse-fast"
+          />
         </div>
       </div>
     </div>
