@@ -17,32 +17,12 @@ const ScoresSection: React.FC<ScoresSectionProps> = ({ darkMode }) => {
   const [showRightArrow, setShowRightArrow] = useState(true);
 
   useEffect(() => {
-    const loadAllScores = async () => {
+    const loadScores = async () => {
       try {
         setLoading(true);
-        const [liveMatches, todayMatches, upcomingMatches] = await Promise.all([
-          fetchFootballScores('live'),
-          fetchFootballScores('today'),
-          fetchFootballScores('upcoming')
-        ]);
-
-        // Combine and sort matches
-        const allMatches = [
-          ...liveMatches,
-          ...todayMatches.filter(match => match.status.toLowerCase() !== 'live'),
-          ...upcomingMatches
-        ].sort((a, b) => {
-          // Live matches first
-          if (a.status.toLowerCase() === 'live' && b.status.toLowerCase() !== 'live') return -1;
-          if (b.status.toLowerCase() === 'live' && a.status.toLowerCase() !== 'live') return 1;
-          
-          // Then by time
-          const timeA = new Date(a.time).getTime();
-          const timeB = new Date(b.time).getTime();
-          return timeA - timeB;
-        });
-
-        setMatches(allMatches);
+        // Only fetch today's matches - they include live matches
+        const todayMatches = await fetchFootballScores('today');
+        setMatches(todayMatches.slice(0, 10)); // Limit to 10 matches
       } catch (error) {
         console.error('Failed to fetch football scores:', error);
       } finally {
@@ -50,8 +30,8 @@ const ScoresSection: React.FC<ScoresSectionProps> = ({ darkMode }) => {
       }
     };
 
-    loadAllScores();
-    const interval = setInterval(loadAllScores, 60000); // Update every minute
+    loadScores();
+    const interval = setInterval(loadScores, 60000); // Update every minute
     
     return () => clearInterval(interval);
   }, []);
@@ -69,21 +49,7 @@ const ScoresSection: React.FC<ScoresSectionProps> = ({ darkMode }) => {
     if (container) {
       container.addEventListener('scroll', handleScroll);
       handleScroll();
-      
-      const checkOverflow = () => {
-        if (container) {
-          const hasOverflow = container.scrollWidth > container.clientWidth;
-          setShowRightArrow(hasOverflow);
-        }
-      };
-      
-      checkOverflow();
-      window.addEventListener('resize', checkOverflow);
-      
-      return () => {
-        container.removeEventListener('scroll', handleScroll);
-        window.removeEventListener('resize', checkOverflow);
-      };
+      return () => container.removeEventListener('scroll', handleScroll);
     }
   }, [matches]);
 
@@ -107,10 +73,10 @@ const ScoresSection: React.FC<ScoresSectionProps> = ({ darkMode }) => {
               Futbol Maçları
             </h2>
             <p className="text-accent-light text-sm">
-              Canlı, bugünkü ve yaklaşan maçlar
+              Canlı ve günün maçları
             </p>
           </div>
-          {matches.some(m => m.status.toLowerCase() === 'live') && (
+          {matches.some(m => m.status === 'LIVE') && (
             <div className="flex items-center">
               <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse mr-2"></div>
               <span className="text-accent-light text-sm">Canlı maçlar oynanıyor</span>

@@ -36,6 +36,40 @@ const formatMatchTime = (date: string, time: string) => {
   };
 };
 
+const processMatches = (matches: any[]): Match[] => {
+  const processedMatches = matches.map((match: any) => ({
+    id: match.match_id,
+    status: match.match_status === '' ? 'NS' : match.match_status,
+    time: match.match_status === '' ? match.match_time : match.match_status,
+    date: match.match_date,
+    league: match.league_name,
+    homeTeam: {
+      id: match.match_hometeam_id,
+      name: match.match_hometeam_name,
+      logo: null,
+      score: parseInt(match.match_hometeam_score) || 0
+    },
+    awayTeam: {
+      id: match.match_awayteam_id,
+      name: match.match_awayteam_name,
+      logo: null,
+      score: parseInt(match.match_awayteam_score) || 0
+    }
+  }));
+
+  // Remove duplicates based on match ID
+  const uniqueMatches = Array.from(
+    new Map(processedMatches.map(match => [match.id, match])).values()
+  );
+
+  // Sort matches: LIVE first, then by time
+  return uniqueMatches.sort((a, b) => {
+    if (a.status === 'LIVE' && b.status !== 'LIVE') return -1;
+    if (b.status === 'LIVE' && a.status !== 'LIVE') return 1;
+    return 0;
+  });
+};
+
 export const fetchFootballScores = async (type: 'live' | 'today' | 'upcoming'): Promise<Match[]> => {
   try {
     const today = new Date().toISOString().split('T')[0];
@@ -69,30 +103,7 @@ export const fetchFootballScores = async (type: 'live' | 'today' | 'upcoming'): 
       return [];
     }
 
-    return data.map((match: any) => ({
-      id: match.match_id,
-      status: match.match_status === '' ? 'NS' : match.match_status,
-      time: match.match_status === '' ? match.match_time : match.match_status,
-      date: match.match_date,
-      league: match.league_name,
-      homeTeam: {
-        id: match.match_hometeam_id,
-        name: match.match_hometeam_name,
-        logo: null,
-        score: parseInt(match.match_hometeam_score) || 0
-      },
-      awayTeam: {
-        id: match.match_awayteam_id,
-        name: match.match_awayteam_name,
-        logo: null,
-        score: parseInt(match.match_awayteam_score) || 0
-      }
-    })).sort((a: Match, b: Match) => {
-      // Live matches first
-      if (a.status === 'LIVE' && b.status !== 'LIVE') return -1;
-      if (b.status === 'LIVE' && a.status !== 'LIVE') return 1;
-      return 0;
-    });
+    return processMatches(data);
 
   } catch (error) {
     console.error('Error fetching football scores:', error);
