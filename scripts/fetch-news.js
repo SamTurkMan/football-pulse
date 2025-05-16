@@ -7,7 +7,7 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
-// Поддерживаем несколько вариантов имени переменной для OPENAI API ключа
+// Поддержка API-ключа
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
 if (!OPENAI_API_KEY) {
   console.error('Error: OPENAI_API_KEY is not set in environment variables.');
@@ -17,7 +17,7 @@ const NEWS_SOURCE_URL = process.env.VITE_NEWS_SOURCE_URL || 'https://www.cnnturk
 
 console.log('Using feed URL:', NEWS_SOURCE_URL);
 
-// Настройка парсера с дополнительными полями для картинок
+// Инициализация RSS-парсера с полями для изображений
 const parser = new Parser({
   customFields: {
     item: [
@@ -31,8 +31,11 @@ const parser = new Parser({
 });
 
 const dataDir = path.join(process.cwd(), 'public', 'data');
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
+if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+
+// Функция для задержек
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 async function fetchArticlesFromSource() {
@@ -40,13 +43,29 @@ async function fetchArticlesFromSource() {
     console.log(`Fetching articles from ${NEWS_SOURCE_URL}...`);
     const feed = await parser.parseURL(NEWS_SOURCE_URL);
 
-    return feed.items.map(item => {
+    // Фильтрация: только футбольные новости
+    const items = feed.items.filter(item => {
+      // Категории из RSS
+      const cats = item.categories || (item.category ? [item.category] : []);
+      if (cats.some(c => /futbol/i.test(c))) return true;
+      // Ссылка содержит футбольный путь
+      if (item.link && /\/spor\/futbol/.test(item.link)) return true;
+      // Заголовок содержит слово futbol
+      if (item.title && /futbol/i.test(item.title)) return true;
+      return false;
+    });
+
+    console.log(`Filtered ${items.length} football articles.`);
+
+    // Преобразуем элементы
+    return items.map(item => {
       let imageUrl =
         item.rssImage ||
         item.enclosure?.url ||
         item['media:thumbnail']?.url ||
         item['media:content']?.url;
 
+      // Если нет, ищем <img> в HTML
       if (!imageUrl) {
         const html = item['content:encoded'] || item.content || '';
         const match = html.match(/<img[^>]+src="([^"\\]+)"/i);
@@ -93,20 +112,14 @@ async function rewriteArticle(article) {
 
     if (!response.ok) {
       console.error(`OpenAI API error: ${response.status} ${response.statusText}`);
-      const errorBody = await response.text();
-      console.error('Response body:', errorBody);
+      console.error('Response body:', await response.text());
       return article;
     }
 
     const data = await response.json();
-    if (!data.choices || !data.choices.length) {
-      console.error('Unexpected OpenAI response format:', JSON.stringify(data));
-      return article;
-    }
-
-    const content = data.choices[0].message?.content;
+    const content = data.choices?.[0]?.message?.content;
     if (!content) {
-      console.error('No message.content in OpenAI response:', JSON.stringify(data));
+      console.error('No content in GPT response:', JSON.stringify(data));
       return article;
     }
 
@@ -120,7 +133,7 @@ async function rewriteArticle(article) {
 
     return {
       ...article,
-      title: rewritten.title,
+      title:   rewritten.title,
       content: rewritten.content,
       summary: rewritten.content.slice(0, 150) + '...'
     };
@@ -147,17 +160,19 @@ function saveArticlesToFile(articles) {
   }
 }
 
-async function main() {
+(async function main() {
   const articles = await fetchArticlesFromSource();
   if (!articles.length) {
-    console.log('No articles found. Exiting.');
+    console.log('No football articles found. Exiting.');
     return;
   }
 
-  console.log(`Found ${articles.length} articles. Rewriting...`);
-  const rewritten = await Promise.all(articles.map(rewriteArticle));
+  console.log(`Found ${articles.length} football articles. Rewriting...`);
+  const rewritten = [];
+  for (let i = 0; i < articles.length; i++) {
+    rewritten.push(await rewriteArticle(articles[i]));
+    if (i < articles.length - 1) await sleep(1000); // небольшая задержка
+  }
   saveArticlesToFile(rewritten);
   console.log('Done.');
-}
-
-main();
+})();
