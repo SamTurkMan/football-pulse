@@ -1,4 +1,5 @@
 import React from 'react';
+import { Wallpaper as SoccerBall } from 'lucide-react';
 import { Match } from '../types/Match';
 
 interface ScoreCardProps {
@@ -46,13 +47,7 @@ const ScoreCard: React.FC<ScoreCardProps> = ({ match, darkMode }) => {
       
       <div className="flex items-center">
         <div className="flex items-center space-x-2 w-[110px]">
-          <div className="w-6 h-6 flex-shrink-0">
-            <img 
-              src={match.homeTeam.logo} 
-              alt={match.homeTeam.name} 
-              className="w-full h-full object-contain"
-            />
-          </div>
+          <SoccerBall size={20} className="text-white flex-shrink-0" />
           <span className="font-medium text-sm truncate">
             {match.homeTeam.name}
           </span>
@@ -72,13 +67,7 @@ const ScoreCard: React.FC<ScoreCardProps> = ({ match, darkMode }) => {
           <span className="font-medium text-sm truncate">
             {match.awayTeam.name}
           </span>
-          <div className="w-6 h-6 flex-shrink-0">
-            <img 
-              src={match.awayTeam.logo} 
-              alt={match.awayTeam.name} 
-              className="w-full h-full object-contain"
-            />
-          </div>
+          <SoccerBall size={20} className="text-white flex-shrink-0" />
         </div>
       </div>
     </div>
