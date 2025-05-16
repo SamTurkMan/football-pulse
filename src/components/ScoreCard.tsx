@@ -11,14 +11,40 @@ const ScoreCard: React.FC<ScoreCardProps> = ({ match, darkMode }) => {
   const isLive = match.status.toUpperCase() === 'LIVE';
   const isScheduled = match.status === 'NS';
 
-  const truncateTeamName = (name: string) => {
+  const shortenTeamName = (name: string) => {
     if (!name) return '';
-    const wordsToRemove = ['Football Club', 'FC', 'United', 'City', 'Athletic'];
-    let shortened = name;
-    wordsToRemove.forEach(word => {
-      shortened = shortened.replace(new RegExp(word, 'gi'), '').trim();
-    });
-    return shortened.length > 12 ? shortened.substring(0, 12) + '...' : shortened;
+    
+    // Common Turkish team abbreviations
+    const abbreviations: { [key: string]: string } = {
+      'Galatasaray': 'GS',
+      'Fenerbahçe': 'FB',
+      'Beşiktaş': 'BJK',
+      'Trabzonspor': 'TS',
+      'Başakşehir': 'BAŞ',
+      'Adana Demirspor': 'ADS',
+      'Antalyaspor': 'ANT',
+      'Kayserispor': 'KAY',
+      'Konyaspor': 'KON',
+      'Sivasspor': 'SİV',
+      'Gaziantep': 'GAZ',
+      'Kasımpaşa': 'KAS',
+      'Alanyaspor': 'ALA',
+      'Hatayspor': 'HAT',
+      'Pendikspor': 'PEN',
+      'İstanbulspor': 'İST',
+      'Ankaragücü': 'ANK',
+      'Rizespor': 'RİZ',
+      'Samsunspor': 'SAM',
+      'Fatih Karagümrük': 'KAR'
+    };
+
+    // Check if we have a predefined abbreviation
+    if (abbreviations[name]) {
+      return abbreviations[name];
+    }
+
+    // For other teams, use first 3 letters
+    return name.substring(0, 3).toUpperCase();
   };
 
   return (
@@ -54,8 +80,8 @@ const ScoreCard: React.FC<ScoreCardProps> = ({ match, darkMode }) => {
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2 flex-1">
           <User size={18} className={`flex-shrink-0 ${darkMode ? 'text-white/80' : 'text-gray-600'}`} />
-          <span className={`font-medium text-sm truncate ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-            {truncateTeamName(match.homeTeam.name)}
+          <span className={`font-medium text-sm ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+            {shortenTeamName(match.homeTeam.name)}
           </span>
         </div>
         
@@ -72,8 +98,8 @@ const ScoreCard: React.FC<ScoreCardProps> = ({ match, darkMode }) => {
         </div>
         
         <div className="flex items-center space-x-2 flex-1 justify-end">
-          <span className={`font-medium text-sm truncate text-right ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-            {truncateTeamName(match.awayTeam.name)}
+          <span className={`font-medium text-sm text-right ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+            {shortenTeamName(match.awayTeam.name)}
           </span>
           <User size={18} className={`flex-shrink-0 ${darkMode ? 'text-white/80' : 'text-gray-600'}`} />
         </div>
