@@ -101,6 +101,23 @@ const ScoresSection: React.FC<ScoresSectionProps> = ({ darkMode }) => {
   return (
     <section className="w-full bg-primary dark:bg-primary-dark shadow-md relative">
       <div className="container mx-auto px-4 py-4">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-white text-lg font-semibold mb-1">
+              Futbol Maçları
+            </h2>
+            <p className="text-accent-light text-sm">
+              Canlı, bugünkü ve yaklaşan maçlar
+            </p>
+          </div>
+          {matches.some(m => m.status.toLowerCase() === 'live') && (
+            <div className="flex items-center">
+              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse mr-2"></div>
+              <span className="text-accent-light text-sm">Canlı maçlar oynanıyor</span>
+            </div>
+          )}
+        </div>
+
         <div className="relative">
           {showLeftArrow && (
             <button
