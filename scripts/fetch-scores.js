@@ -20,27 +20,22 @@ const headers = {
   'x-rapidapi-host':  'v3.football.api-sports.io'
 };
 
-// Вычисляем текущий сезон (например, 2024 для сезона 2024–2025)
-const now    = new Date();
-const season = (now.getMonth() + 1 >= 7 ? now.getFullYear() : now.getFullYear() - 1).toString();
+// Теперь просто текущий год
+const season = new Date().getFullYear().toString();
 console.log(`Using season=${season}`);
 
 // ------------------- Утилиты -------------------
 
-// Общая функция для GET-запросов с логированием
 async function apiGet(pathname) {
   const url = `${BASE_URL}${pathname}`;
   console.log(`→ GET ${url}`);
   const res = await fetch(url, { headers });
   console.log(`← ${res.status} ${res.statusText}`);
   const json = await res.json();
-  if (!res.ok) {
-    throw new Error(`API error ${res.status}: ${JSON.stringify(json)}`);
-  }
+  if (!res.ok) throw new Error(`API error ${res.status}: ${JSON.stringify(json)}`);
   return json.response || [];
 }
 
-// Нормализация массива матчей в нужный формат
 function normalize(matches) {
   return matches.map(m => ({
     id:       `${m.fixture.id}`,
@@ -66,7 +61,6 @@ function normalize(matches) {
   }));
 }
 
-// Сохраняем JSON-файлы в public/data/
 function saveMatches(live, today, upcoming) {
   const dir = path.join(process.cwd(), 'public', 'data');
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -87,85 +81,27 @@ function saveMatches(live, today, upcoming) {
   console.log(`✅ Saved: live ${live.length}, today ${today.length}, upcoming ${upcoming.length}`);
 }
 
-// ------------------- Основные шаги -------------------
+// ------------------- Основной процесс -------------------
 
-// 1) Получаем все лиги Турции
-async function fetchLeaguesForCountry(country = 'Turkey') {
-  try {
-    const data = await apiGet(`/leagues?country=${encodeURIComponent(country)}`);
-    const ids  = data.map(item => item.league.id);
-    console.log(`Found ${ids.length} leagues in ${country}:`, ids);
-    return ids;
-  } catch (err) {
-    console.error('Error fetching leagues:', err);
-    return [];
-  }
-}
-
-// 2) Для списка leagueIds запрашиваем fixtures по шаблону endpointTemplate
-async function fetchFixturesByLeagues(endpointTemplate, leagueIds) {
-  const all = [];
-  for (const id of leagueIds) {
-    try {
-      const path = endpointTemplate
-        .replace('{league}', id)
-        .replace('{season}', season);
-      const fixtures = await apiGet(path);
-      console.log(` → League ${id} returned ${fixtures.length} items`);
-      all.push(...fixtures);
-    } catch (err) {
-      console.error(`Error fetching fixtures for league ${id}:`, err);
-    }
-  }
-  return all;
-}
-
-// 3) Сбор живых матчей
-async function fetchLiveMatches(leagueIds) {
-  return fetchFixturesByLeagues(
-    '/fixtures?league={league}&season={season}&live=all',
-    leagueIds
-  );
-}
-
-// 4) Сбор матчей за сегодня
-async function fetchTodayMatches(leagueIds) {
-  const date = new Date().toISOString().split('T')[0];
-  return fetchFixturesByLeagues(
-    `/fixtures?league={league}&season={season}&date=${date}`,
-    leagueIds
-  );
-}
-
-// 5) Сбор предстоящих матчей на 7 дней вперёд
-async function fetchUpcomingMatches(leagueIds) {
-  const today = new Date().toISOString().split('T')[0];
-  const next  = new Date(); next.setDate(next.getDate() + 7);
-  const to    = next.toISOString().split('T')[0];
-  return fetchFixturesByLeagues(
-    `/fixtures?league={league}&season={season}&from=${today}&to=${to}&status=NS`,
-    leagueIds
-  );
-}
-
-// Главная функция
 (async () => {
   try {
-    const leagueIds = await fetchLeaguesForCountry('Turkey');
-    if (!leagueIds.length) {
-      console.log('No Turkish leagues found — exiting.');
-      return;
-    }
+    // 1) Получаем все лиги Турции
+    const leaguesData = await apiGet('/leagues?country=Turkey');
+    const leagueIds   = leaguesData.map(l => l.league.id);
+    console.log(`Found ${leagueIds.length} Turkish leagues:`, leagueIds);
 
+    // 2) Сбор матчей: live, today, upcoming
     const [live, today, upcoming] = await Promise.all([
-      fetchLiveMatches(leagueIds),
-      fetchTodayMatches(leagueIds),
-      fetchUpcomingMatches(leagueIds)
+      apiGet(`/fixtures?league=${leagueIds.join(',')}&season=${season}&live=all`),
+      apiGet(`/fixtures?league=${leagueIds.join(',')}&season=${season}&date=${new Date().toISOString().split('T')[0]}`),
+      apiGet(`/fixtures?league=${leagueIds.join(',')}&season=${season}&from=${new Date().toISOString().split('T')[0]}&to=${(() => { 
+        const d = new Date(); d.setDate(d.getDate()+7); return d.toISOString().split('T')[0];
+      })()}&status=NS`)
     ]);
 
     saveMatches(live, today, upcoming);
   } catch (err) {
-    console.error('Fatal error in main():', err);
+    console.error('Fatal error:', err);
     process.exit(1);
   }
 })();
