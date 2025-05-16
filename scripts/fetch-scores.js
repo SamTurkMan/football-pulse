@@ -11,20 +11,24 @@ if (!API_KEY) {
 }
 
 const BASE_URL = 'https://v3.football.api-sports.io';
+// Правильные заголовки для API-Sports v3:
 const headers = {
-  'Content-Type': 'application/json',
-  'Authorization': `Bearer ${API_KEY}`
+  'Content-Type':     'application/json',
+  'x-apisports-key':  API_KEY,                         // обязательный заголовок :contentReference[oaicite:0]{index=0}
+  'x-rapidapi-host':  'v3.football.api-sports.io'       // только если вы подключаетесь через RapidAPI
 };
 
-// Вспомогалка для запросов
-async function apiGet(path) {
-  const url = `${BASE_URL}${path}`;
+// Вспомогательная функция для GET-запросов с логированием
+async function apiGet(pathname) {
+  const url = `${BASE_URL}${pathname}`;
   console.log(`→ GET ${url}`);
   const res = await fetch(url, { headers });
   console.log(`← ${res.status} ${res.statusText}`);
-  const json = await res.json();
-  if (!res.ok) throw new Error(`API error ${res.status}: ${JSON.stringify(json)}`);
-  return json.response || [];
+  const body = await res.json();
+  if (!res.ok) {
+    throw new Error(`API error ${res.status}: ${JSON.stringify(body)}`);
+  }
+  return body.response || [];
 }
 
 // Живые матчи по всей Турции
@@ -38,7 +42,7 @@ async function fetchTodayMatches() {
   return await apiGet(`/fixtures?date=${date}&country=Turkey`);
 }
 
-// Предстоящие матчи по Турции (next 7 days)
+// Предстоящие матчи (следующие 7 дней) по Турции
 async function fetchUpcomingMatches() {
   const today = new Date().toISOString().split('T')[0];
   const next  = new Date(); next.setDate(next.getDate() + 7);
@@ -46,45 +50,64 @@ async function fetchUpcomingMatches() {
   return await apiGet(`/fixtures?from=${today}&to=${to}&status=NS&country=Turkey`);
 }
 
-// Форматируем ответ в нужный вам JSON
+// Приводим данные к нужному формату
 function normalize(matches) {
   return matches.map(m => ({
     id:       `${m.fixture.id}`,
     status:   m.fixture.status.short,
-    time:     m.fixture.status.short === 'FT' ? 'Full Time'
-             : (m.fixture.status.elapsed != null ? `${m.fixture.status.elapsed}'` : m.fixture.date),
+    time:     m.fixture.status.short === 'FT'
+               ? 'Full Time'
+               : (m.fixture.status.elapsed != null
+                  ? `${m.fixture.status.elapsed}'`
+                  : m.fixture.date),
     league:   m.league.name,
     homeTeam: {
-      id:    `${m.teams.home.id}`, name: m.teams.home.name,
-      logo:  m.teams.home.logo,      score: m.goals.home || 0
+      id:    `${m.teams.home.id}`,
+      name:  m.teams.home.name,
+      logo:  m.teams.home.logo,
+      score: m.goals.home || 0
     },
     awayTeam: {
-      id:    `${m.teams.away.id}`, name: m.teams.away.name,
-      logo:  m.teams.away.logo,      score: m.goals.away || 0
+      id:    `${m.teams.away.id}`,
+      name:  m.teams.away.name,
+      logo:  m.teams.away.logo,
+      score: m.goals.away || 0
     }
   }));
 }
 
-// Сохраняем в public/data/
+// Сохраняем JSON-файлы в public/data/
 function saveMatches(live, today, upcoming) {
   const dir = path.join(process.cwd(), 'public', 'data');
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
-  fs.writeFileSync(path.join(dir, 'live-matches.json'),     JSON.stringify(normalize(live),     null, 2));
-  fs.writeFileSync(path.join(dir, 'today-matches.json'),    JSON.stringify(normalize(today),    null, 2));
-  fs.writeFileSync(path.join(dir, 'upcoming-matches.json'), JSON.stringify(normalize(upcoming), null, 2));
+  fs.writeFileSync(
+    path.join(dir, 'live-matches.json'),
+    JSON.stringify(normalize(live), null, 2)
+  );
+  fs.writeFileSync(
+    path.join(dir, 'today-matches.json'),
+    JSON.stringify(normalize(today), null, 2)
+  );
+  fs.writeFileSync(
+    path.join(dir, 'upcoming-matches.json'),
+    JSON.stringify(normalize(upcoming), null, 2)
+  );
 
-  console.log(`✅ Saved: live ${live.length}, today ${today.length}, upcoming ${upcoming.length}`);
+  console.log(
+    `✅ Saved: live ${live.length}, today ${today.length}, upcoming ${upcoming.length}`
+  );
 }
 
+// Главная функция
 (async () => {
   try {
     const live     = await fetchLiveMatches();
     const today    = await fetchTodayMatches();
     const upcoming = await fetchUpcomingMatches();
     saveMatches(live, today, upcoming);
-  } catch (e) {
-    console.error('Fatal error:', e);
+  } catch (err) {
+    console.error('Fatal error:', err);
     process.exit(1);
   }
 })();
