@@ -5,22 +5,24 @@ import { Match } from '../types/Match';
 const API_KEY  = '88eb6ed5d5aa074ac758f707e5a42e152e401d052f03bd95caf03e41e05a1872';
 const BASE_URL = 'https://apiv3.apifootball.com/';
 
-/** Универсальная обёртка для GET → [] при ошибке или не-массиве */
+/** Делает GET к APIfootball, возвращает [] при ошибке или не-массиве */
 async function apiGet(params: Record<string,string>): Promise<any[]> {
   const url = new URL(BASE_URL);
   url.searchParams.set('APIkey', API_KEY);
-  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+  for (const [k, v] of Object.entries(params)) {
+    url.searchParams.set(k, v);
+  }
   const res  = await fetch(url.toString());
   const body = await res.json();
   return Array.isArray(body) ? body : [];
 }
 
-/** Парсит строку "YYYY-MM-DD HH:mm:ss" в UTC-Date */
+/** Парсит "YYYY-MM-DD HH:mm:ss" → UTC Date */
 function parseMatchDate(str: string): Date {
   return new Date(str.replace(' ', 'T') + 'Z');
 }
 
-/** Форматирует дату/время для турецкой локали */
+/** Форматирует Date → { date, time } (турецкая локаль) */
 function formatDate(dt: Date) {
   return {
     date: dt.toLocaleDateString('tr-TR', { day:'numeric', month:'long', year:'numeric' }),
@@ -28,37 +30,33 @@ function formatDate(dt: Date) {
   };
 }
 
-/** Вычисляет “in 2h 15m” или “LIVE”/“Finished” */
+/** Вычисляет "LIVE"/"Finished"/"in Xh Ym"/"Starting soon" */
 function computeStartsIn(dt: Date, status: string): string {
   const now = new Date();
   if (status === 'LIVE') return 'LIVE';
   if (status === 'FT')   return 'Finished';
-  const diff = dt.getTime() - now.getTime();
-  if (diff <= 0)          return 'Starting soon';
-  const mins = Math.floor(diff/60000);
-  const h    = Math.floor(mins/60);
-  const m    = mins % 60;
-  return h>0 ? `in ${h}h ${m}m` : `in ${m}m`;
+
+  const diffMs  = dt.getTime() - now.getTime();
+  if (diffMs <= 0)        return 'Starting soon';
+
+  const diffMin = Math.floor(diffMs / 60000);
+  const h       = Math.floor(diffMin / 60);
+  const m       = diffMin % 60;
+  return h > 0 ? `in ${h}h ${m}m` : `in ${m}m`;
 }
 
-/** Нормализуем “сырой” объект из API в Match */
+/** Нормализует один объект API → Match */
 function normalizeEvent(m: any): Match {
-  // 1) Сначала парсим дату матча
-  const matchDt = parseMatchDate(m.match_date);
+  const dt       = parseMatchDate(m.match_date);
+  const { date, time } = formatDate(dt);
+  const startsIn = computeStartsIn(dt, m.match_status);
 
-  // 2) Форматируем её в date/time
-  const { date, time } = formatDate(matchDt);
-
-  // 3) Вычисляем, через сколько начнётся или текущий статус
-  const startsIn = computeStartsIn(matchDt, m.match_status);
-
-  // 4) Возвращаем объект Match
   return {
     id:       m.match_id.toString(),
-    status:   m.match_status,  // ‘NS’ | ‘LIVE’ | ‘FT’
-    date,                      // e.g. “16 Mayıs 2025”
-    time,                      // e.g. “15:30”
-    startsIn,                  // e.g. “in 2h 5m” | “LIVE” | “Finished”
+    status:   m.match_status,  // 'NS' | 'LIVE' | 'FT'
+    date,                       // "16 Mayıs 2025"
+    time,                       // "15:30"
+    startsIn,                   // "in 2h 5m" | "LIVE" | "Finished"
     league:   m.league_name,
     homeTeam: {
       id:    m.match_hometeam_id  .toString(),
@@ -76,45 +74,52 @@ function normalizeEvent(m: any): Match {
 }
 
 /**
- * Функция для получения матчей:
- * - 'live'     — только LIVE-матчи
- * - 'upcoming' — до 10 ближайших NS-матчей
+ * Возвращает Match[] для трёх типов:
+ * - 'live'     — все LIVE-матчи
+ * - 'today'    — матчи сегодняшнего дня (NS + LIVE)
+ * - 'upcoming' — до 10 ближайших будущих NS-матчей
  */
 export const fetchFootballScores = async (
-  type: 'live' | 'upcoming'
+  type: 'live' | 'today' | 'upcoming'
 ): Promise<Match[]> => {
   try {
-    let params: Record<string,string>;
+    // 1) Собираем параметры
+    const today = new Date().toISOString().slice(0,10);
+    const next  = new Date(); next.setDate(next.getDate()+7);
+    const to    = next.toISOString().slice(0,10);
 
+    let params: Record<string,string>;
     if (type === 'live') {
-      params = { action:'get_live_scores', live:'all' };
-    } else {
-      // upcoming: NS-матчи на ближайшие 7 дней, берём первые 10
-      const from = new Date().toISOString().slice(0,10);
-      const toDt = new Date(); toDt.setDate(toDt.getDate()+7);
-      const to = toDt.toISOString().slice(0,10);
-      params = { action:'get_events', from, to, status:'NS' };
+      params = { action: 'get_live_scores', live: 'all' };
+    } else if (type === 'today') {
+      params = { action: 'get_events', date: today };
+    } else { // upcoming
+      params = { action: 'get_events', from: today, to, status: 'NS' };
     }
 
-    // 1) Получаем сырые данные
+    // 2) Получаем «сырые» данные
     let raw = await apiGet(params);
 
-    // 2) Фильтрация/сортировка
+    // 3) Фильтрация и сортировка
     if (type === 'live') {
       raw = raw.filter((m:any) => m.match_status === 'LIVE');
-    } else {
+    }
+    if (type === 'today') {
+      raw = raw.filter((m:any) => m.match_status === 'NS' || m.match_status === 'LIVE');
+    }
+    if (type === 'upcoming') {
       raw = raw
         .filter((m:any) => m.match_status === 'NS')
         .sort((a:any,b:any) => 
-          new Date(a.match_date).getTime() - new Date(b.match_date).getTime()
+          parseMatchDate(a.match_date).getTime() - parseMatchDate(b.match_date).getTime()
         )
-        .slice(0, 10);
+        .slice(0,10);
     }
 
-    // 3) Нормализация
+    // 4) Возвращаем нормализованный массив
     return raw.map(normalizeEvent);
-  } catch (e) {
-    console.error('Error fetching football scores:', e);
+  } catch (err) {
+    console.error('Error fetching football scores:', err);
     return [];
   }
 };
