@@ -1,13 +1,14 @@
 name: Update Football Content
 
-# Дать прав на запись в репозиторий
+# Дать права на запись в репозиторий
 permissions:
   contents: write
 
 on:
+  # Каждый день в 00:00 по Тбилиси (Asia/Tbilisi = UTC+4)
   schedule:
-    - cron: '0 * * * *'       # каждый час
-  workflow_dispatch:         # для ручного запуска
+    - cron: '0 20 * * *'
+  workflow_dispatch:
 
 jobs:
   update-content:
@@ -17,10 +18,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          # по-умолчанию true, но явно прописано — чтобы checkout
-          # сохранял credentials для пуша
           persist-credentials: true
-          # fetch-depth 0, если нужно переписывать историю
           fetch-depth: 0
 
       - name: Set up Node.js
@@ -34,9 +32,14 @@ jobs:
 
       - name: Create .env file
         run: |
-          echo "VITE_FOOTBALL_API_KEY=${{ secrets.VITE_FOOTBALL_API_KEY }}" >> .env
-          echo "VITE_OPENAI_API_KEY=${{ secrets.VITE_OPENAI_API_KEY }}" >> .env
-          echo "VITE_NEWS_SOURCE_URL=${{ secrets.VITE_NEWS_SOURCE_URL }}" >> .env
+          # Для fetch-scores.js
+          echo "VITE_FOOTBALL_API_KEY=${{ secrets.VITE_FOOTBALL_API_KEY }}"      >> .env
+          # Для fetch-news.js
+          echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}"                   >> .env
+          echo "VITE_NEWS_SOURCE_URL=${{ secrets.VITE_NEWS_SOURCE_URL }}"      >> .env
+          # Лимит и пауза для OpenAI
+          echo "DAILY_LIMIT=5"                                                 >> .env
+          echo "THROTTLE_MS=120000"                                            >> .env
 
       - name: Fetch and process football news
         run: node scripts/fetch-news.js
@@ -47,9 +50,8 @@ jobs:
       - name: Commit and push if content changed
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
+          git config --local user.name  "github-actions[bot]"
           git add public/data/
-          # если есть изменения — закоммитить и запушить
           git diff --quiet && git diff --staged --quiet || (
             git commit -m "Update football content [skip ci]"
             git push

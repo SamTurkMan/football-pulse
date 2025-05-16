@@ -41,30 +41,83 @@ const NewsSection: React.FC<NewsSectionProps> = ({ darkMode }) => {
     }
   };
 
+  if (loading) {
+    return (
+      <section className="space-y-8">
+        <div className="h-[500px] bg-gray-300 dark:bg-gray-700 rounded-2xl animate-pulse" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <NewsCardSkeleton darkMode={darkMode} />
+          <NewsCardSkeleton darkMode={darkMode} />
+          <NewsCardSkeleton darkMode={darkMode} />
+        </div>
+      </section>
+    );
+  }
+
+  if (!articles.length) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-gray-500 dark:text-gray-400">Haber bulunamadı.</p>
+      </div>
+    );
+  }
+
+  const [featuredArticle, ...otherArticles] = articles;
+
   return (
-    <section id="news" className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg p-6`}>
-      <h2 className="text-2xl font-bold mb-6 pb-2 border-b border-gray-300 dark:border-gray-700">
-        Son Futbol Haberleri
-      </h2>
+    <section className="space-y-8">
+      <h2 className="text-2xl font-bold mb-6">Son Futbol Haberleri</h2>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {articles.map(article => (
+      {/* Featured Article */}
+      <div className="card group overflow-hidden">
+        <div className="relative h-[500px]">
+          <img 
+            src={featuredArticle.imageUrl} 
+            alt={featuredArticle.title}
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+          <div className="absolute bottom-0 left-0 right-0 p-8">
+            <div className="flex items-center space-x-4 mb-4">
+              <span className="bg-accent px-4 py-1.5 rounded-full text-white font-medium">
+                {featuredArticle.category}
+              </span>
+              <time className="text-gray-300" dateTime={featuredArticle.publishedAt}>
+                {new Date(featuredArticle.publishedAt).toLocaleDateString('tr-TR', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })}
+              </time>
+            </div>
+            <h3 className="text-3xl font-bold text-white mb-4 line-clamp-2">
+              {featuredArticle.title}
+            </h3>
+            <p className="text-gray-200 line-clamp-3 mb-6 max-w-3xl">
+              {featuredArticle.summary}
+            </p>
+            <button 
+              onClick={() => window.location.href = `/article/${featuredArticle.id}`}
+              className="btn-primary"
+            >
+              Devamını Oku
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Other Articles Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {otherArticles.map(article => (
           <NewsCard key={article.id} article={article} darkMode={darkMode} />
         ))}
-        
-        {loading && (
-          <>
-            <NewsCardSkeleton darkMode={darkMode} />
-            <NewsCardSkeleton darkMode={darkMode} />
-          </>
-        )}
       </div>
       
-      {!loading && hasMore && (
+      {hasMore && (
         <div className="mt-8 text-center">
           <button 
             onClick={loadMore}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-full shadow transition-colors duration-200"
+            className="btn-primary"
           >
             Daha Fazla
           </button>

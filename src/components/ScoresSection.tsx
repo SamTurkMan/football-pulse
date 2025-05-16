@@ -39,67 +39,61 @@ const ScoresSection: React.FC<ScoresSectionProps> = ({ darkMode }) => {
   }, [activeTab]);
 
   return (
-    <section id="scores" className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg p-6`}>
-      <h2 className="text-2xl font-bold mb-6 pb-2 border-b border-gray-300 dark:border-gray-700">
-        Futbol Skorları
-      </h2>
-      
-      <div className="flex mb-6 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-        <button
-          onClick={() => setActiveTab('live')}
-          className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
-            activeTab === 'live' 
-              ? 'bg-blue-600 text-white' 
-              : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-          }`}
-        >
-          Canlı
-        </button>
-        <button
-          onClick={() => setActiveTab('today')}
-          className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
-            activeTab === 'today' 
-              ? 'bg-blue-600 text-white' 
-              : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-          }`}
-        >
-          Bugün
-        </button>
-        <button
-          onClick={() => setActiveTab('upcoming')}
-          className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
-            activeTab === 'upcoming' 
-              ? 'bg-blue-600 text-white' 
-              : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-          }`}
-        >
-          Yaklaşan
-        </button>
-      </div>
-      
-      <div className="space-y-4">
-        {loading ? (
-          <>
-            <ScoreCardSkeleton darkMode={darkMode} />
-            <ScoreCardSkeleton darkMode={darkMode} />
-            <ScoreCardSkeleton darkMode={darkMode} />
-          </>
-        ) : matches.length > 0 ? (
-          matches.map(match => (
-            <ScoreCard key={match.id} match={match} darkMode={darkMode} />
-          ))
-        ) : (
-          <div className={`text-center py-8 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-            <p>Maç bulunamadı.</p>
-          </div>
-        )}
-      </div>
-      
-      {activeTab === 'live' && matches.length > 0 && (
-        <div className="text-xs text-gray-500 dark:text-gray-400 mt-4 text-center">
-          Canlı skorlar her dakika otomatik güncellenir
+    <section className="w-full bg-primary dark:bg-primary-dark shadow-md">
+      <div className="container mx-auto px-4 py-2">
+        <div className="flex items-center space-x-4 mb-2">
+          <button
+            onClick={() => setActiveTab('live')}
+            className={`text-sm font-medium px-3 py-1 rounded-full transition-colors duration-200 ${
+              activeTab === 'live' 
+                ? 'bg-accent text-white' 
+                : 'text-accent-light hover:text-white'
+            }`}
+          >
+            Canlı
+          </button>
+          <button
+            onClick={() => setActiveTab('today')}
+            className={`text-sm font-medium px-3 py-1 rounded-full transition-colors duration-200 ${
+              activeTab === 'today' 
+                ? 'bg-accent text-white' 
+                : 'text-accent-light hover:text-white'
+            }`}
+          >
+            Bugün
+          </button>
+          <button
+            onClick={() => setActiveTab('upcoming')}
+            className={`text-sm font-medium px-3 py-1 rounded-full transition-colors duration-200 ${
+              activeTab === 'upcoming' 
+                ? 'bg-accent text-white' 
+                : 'text-accent-light hover:text-white'
+            }`}
+          >
+            Yaklaşan
+          </button>
         </div>
-      )}
+        
+        <div className="overflow-x-auto pb-2 hide-scrollbar">
+          <div className="flex space-x-4 min-w-max">
+            {loading ? (
+              <>
+                <ScoreCardSkeleton darkMode={darkMode} />
+                <ScoreCardSkeleton darkMode={darkMode} />
+                <ScoreCardSkeleton darkMode={darkMode} />
+              </>
+            ) : matches.length > 0 ? (
+              matches.map(match => (
+                <ScoreCard key={match.id} match={match} darkMode={darkMode} />
+              ))
+            ) : (
+              <div className="text-accent-light py-2 px-4">
+                Maç bulunamadı.
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </section>
   );
 };

@@ -29,17 +29,13 @@ function App() {
     <BrowserRouter>
       <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
         <Header darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+        <ScoresSection darkMode={darkMode} />
 
         <main className="flex-grow container mx-auto px-4 py-8">
           <Routes>
             <Route path="/" element={
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2">
-                  <NewsSection darkMode={darkMode} />
-                </div>
-                <div className="lg:col-span-1">
-                  <ScoresSection darkMode={darkMode} />
-                </div>
+              <div className="w-full">
+                <NewsSection darkMode={darkMode} />
               </div>
             } />
             <Route path="/article/:id" element={<ArticlePage darkMode={darkMode} />} />
@@ -52,4 +48,4 @@ function App() {
   );
 }
 
-export default App;
+export default App

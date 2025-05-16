@@ -1,23 +1,33 @@
-const fs = require('fs');
-const path = require('path');
+// fetch-news.js
+const fs       = require('fs');
+const path     = require('path');
 const { v4: uuidv4 } = require('uuid');
-const fetch = require('node-fetch');
-const Parser = require('rss-parser');
-const dotenv = require('dotenv');
+const fetch    = require('node-fetch');
+const Parser   = require('rss-parser');
+require('dotenv').config();
 
-dotenv.config();
+// ==== Настройки через .env ====
+const OPENAI_API_KEY    = process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
+const NEWS_SOURCE_URL   = process.env.VITE_NEWS_SOURCE_URL || 'https://www.cnnturk.com/feed/rss/spor/futbol';
+// Сколько статей максимум за запуск (по умолчанию 5)
+const DAILY_LIMIT       = parseInt(process.env.DAILY_LIMIT, 10) || 5;
+// Задержка между вызовами OpenAI в мс (по умолчанию 120000 = 2 мин)
+const THROTTLE_MS       = parseInt(process.env.THROTTLE_MS, 10) || 120000;
 
-// Поддержка API-ключа
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
 if (!OPENAI_API_KEY) {
-  console.error('Error: OPENAI_API_KEY is not set in environment variables.');
+  console.error('Error: OPENAI_API_KEY is not set');
   process.exit(1);
 }
-const NEWS_SOURCE_URL = process.env.VITE_NEWS_SOURCE_URL || 'https://www.cnnturk.com/feed/rss/spor/futbol';
 
 console.log('Using feed URL:', NEWS_SOURCE_URL);
+console.log(`Daily limit: ${DAILY_LIMIT} articles, throttle: ${THROTTLE_MS} ms`);
 
-// Инициализация RSS-парсера с полями для изображений
+// Утилита-пауза
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Настройка RSS-парсера с полями для картинок
 const parser = new Parser({
   customFields: {
     item: [
@@ -31,45 +41,41 @@ const parser = new Parser({
 });
 
 const dataDir = path.join(process.cwd(), 'public', 'data');
-if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
-
-// Функция для задержек
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir, { recursive: true });
 }
 
+// Загрузка и фильтрация статей
 async function fetchArticlesFromSource() {
   try {
-    console.log(`Fetching articles from ${NEWS_SOURCE_URL}...`);
     const feed = await parser.parseURL(NEWS_SOURCE_URL);
+    console.log(`Fetched ${feed.items.length} items from RSS`);
 
-    // Фильтрация: только футбольные новости
-    const items = feed.items.filter(item => {
-      // Категории из RSS
+    // Фильтрация: берем только футбол
+    const footballItems = feed.items.filter(item => {
+      // 1. Ссылка содержит футбольный путь
+      if (item.link && /\/spor\/futbol/.test(item.link)) return true;
+      // 2. Категория содержит 'futbol'
       const cats = item.categories || (item.category ? [item.category] : []);
       if (cats.some(c => /futbol/i.test(c))) return true;
-      // Ссылка содержит футбольный путь
-      if (item.link && /\/spor\/futbol/.test(item.link)) return true;
-      // Заголовок содержит слово futbol
+      // 3. Заголовок содержит 'futbol'
       if (item.title && /futbol/i.test(item.title)) return true;
       return false;
     });
 
-    console.log(`Filtered ${items.length} football articles.`);
+    console.log(`Filtered ${footballItems.length} football articles`);
+    return footballItems.map(item => {
+      // Выбираем картинку из доступных полей
+      let imageUrl = 
+           item.rssImage
+        || item.enclosure?.url
+        || item['media:thumbnail']?.url
+        || item['media:content']?.url;
 
-    // Преобразуем элементы
-    return items.map(item => {
-      let imageUrl =
-        item.rssImage ||
-        item.enclosure?.url ||
-        item['media:thumbnail']?.url ||
-        item['media:content']?.url;
-
-      // Если нет, ищем <img> в HTML
       if (!imageUrl) {
         const html = item['content:encoded'] || item.content || '';
-        const match = html.match(/<img[^>]+src="([^"\\]+)"/i);
-        imageUrl = match ? match[1] : null;
+        const m = html.match(/<img[^>]+src="([^"]+)"/i);
+        imageUrl = m ? m[1] : null;
       }
 
       return {
@@ -82,22 +88,25 @@ async function fetchArticlesFromSource() {
         url:         item.link
       };
     });
-  } catch (error) {
-    console.error('Error fetching articles from source:', error);
+  } catch (err) {
+    console.error('Error fetching/parsing RSS:', err);
     return [];
   }
 }
 
+// Переписывание одной статьи через OpenAI
 async function rewriteArticle(article) {
+  console.log(`Rewriting article: ${article.title}`);
+  const prompt = 
+    `Sen bir spor muhabirisin. Aşağıdaki futbol haberini detaylı, akıcı ve özgün bir şekilde yeniden yaz. ` +
+    `Bilgileri koru, ama ifadeleri değiştir. Giriş cümlesi dikkat çekici olsun. Uzunluk en az 3 paragraf olsun. ` +
+    `JSON formatında yalnızca iki alan dön: {"title": "...", "content": "..."} — при этом внутри контента ` +
+    `используй \\n для переноса абзацев и не вставляй лишние пробельные символы.\n\n` +
+    `Başlık: ${article.title}\n` +
+    `İçerik: ${article.content}`;
+
   try {
-    console.log(`Rewriting article: ${article.title}`);
-
-    const prompt = `Sen bir spor muhabirisin. Aşağıdaki futbol haberini detaylı, akıcı ve özgün bir şekilde yeniden yaz. Bilgileri koru ama ifadeleri değiştir. Giriş cümlesi dikkat çekici olsun. Uzunluk en az 3 paragraf olsun.\n` +
-                   `Yanıta sadece JSON olarak dön ve content alanında gerçek yeni satır karakterleri kullanma; paragraf ayırma için \\n kullan.\n\n` +
-                   `Başlık: ${article.title}\n` +
-                   `İçerik: ${article.content}`;
-
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -110,69 +119,78 @@ async function rewriteArticle(article) {
       })
     });
 
-    if (!response.ok) {
-      console.error(`OpenAI API error: ${response.status} ${response.statusText}`);
-      console.error('Response body:', await response.text());
+    if (!res.ok) {
+      console.error(`OpenAI API error: ${res.status} ${res.statusText}`);
+      console.error(await res.text());
       return article;
     }
 
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
-    if (!content) {
-      console.error('No content in GPT response:', JSON.stringify(data));
+    const data = await res.json();
+    const text = data.choices?.[0]?.message?.content;
+    if (!text) {
+      console.error('Empty GPT response:', JSON.stringify(data));
       return article;
     }
 
-    let rewritten;
+    let parsed;
     try {
-      rewritten = JSON.parse(content);
-    } catch (parseError) {
-      console.error('Failed to parse JSON from GPT response:', content, parseError);
+      parsed = JSON.parse(text);
+    } catch (e) {
+      console.error('Failed to parse GPT JSON:', e);
+      console.error('Raw response:', text);
       return article;
     }
 
     return {
       ...article,
-      title:   rewritten.title,
-      content: rewritten.content,
-      summary: rewritten.content.slice(0, 150) + '...'
+      title:   parsed.title,
+      content: parsed.content,
+      summary: parsed.content.slice(0, 150) + '...'
     };
-  } catch (error) {
-    console.error('Error rewriting article:', error);
+  } catch (err) {
+    console.error('Error in rewriteArticle():', err);
     return article;
   }
 }
 
+// Сохраняем результат в public/data/articles.json
 function saveArticlesToFile(articles) {
+  const filePath = path.join(dataDir, 'articles.json');
   try {
-    const filePath = path.join(dataDir, 'articles.json');
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
     const withIds = articles.map(a => ({ id: uuidv4(), ...a }));
-    const limited = withIds
-      .sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt))
-      .slice(0, 50);
-
-    fs.writeFileSync(filePath, JSON.stringify(limited, null, 2));
-    console.log(`Saved ${limited.length} articles to ${filePath}`);
+    fs.writeFileSync(filePath, JSON.stringify(withIds, null, 2));
+    console.log(`Saved ${withIds.length} articles to ${filePath}`);
   } catch (err) {
     console.error('Error saving articles:', err);
   }
 }
 
+// Главная функция
 (async function main() {
-  const articles = await fetchArticlesFromSource();
-  if (!articles.length) {
-    console.log('No football articles found. Exiting.');
+  const all = await fetchArticlesFromSource();
+  if (!all.length) {
+    console.log('No football articles found — exiting.');
     return;
   }
 
-  console.log(`Found ${articles.length} football articles. Rewriting...`);
+  // Берём самые свежие
+  all.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+  const batch = all.slice(0, DAILY_LIMIT);
+  console.log(`Processing ${batch.length}/${all.length} articles (limit ${DAILY_LIMIT})`);
+
   const rewritten = [];
-  for (let i = 0; i < articles.length; i++) {
-    rewritten.push(await rewriteArticle(articles[i]));
-    if (i < articles.length - 1) await sleep(1000); // небольшая задержка
+  for (let i = 0; i < batch.length; i++) {
+    const art = await rewriteArticle(batch[i]);
+    rewritten.push(art);
+    if (i < batch.length - 1) {
+      console.log(`Waiting ${THROTTLE_MS/1000}s before next OpenAI call…`);
+      await sleep(THROTTLE_MS);
+    }
   }
+
   saveArticlesToFile(rewritten);
   console.log('Done.');
 })();

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Flame, Sun, Moon, Menu, X } from 'lucide-react';
+import { Flame, Sun, Moon, Menu, X, Facebook, Instagram, MessageSquare } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface HeaderProps {
@@ -28,7 +28,7 @@ const Header: React.FC<HeaderProps> = ({ darkMode, toggleDarkMode }) => {
           </Link>
           
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
+          <nav className="hidden md:flex items-center space-x-6">
             <Link 
               to="/#news" 
               className="text-accent-light hover:text-white transition-colors duration-200"
@@ -41,6 +41,29 @@ const Header: React.FC<HeaderProps> = ({ darkMode, toggleDarkMode }) => {
             >
               Skorlar
             </Link>
+            
+            {/* Social Media Icons */}
+            <div className="flex items-center space-x-3 border-l border-primary-light/20 pl-6">
+              <button 
+                className="p-2 rounded-full hover:bg-primary-light/10 transition-all duration-200 group"
+                aria-label="Facebook"
+              >
+                <Facebook size={18} className="text-accent-light group-hover:text-white transition-colors duration-200" />
+              </button>
+              <button 
+                className="p-2 rounded-full hover:bg-primary-light/10 transition-all duration-200 group"
+                aria-label="Instagram"
+              >
+                <Instagram size={18} className="text-accent-light group-hover:text-white transition-colors duration-200" />
+              </button>
+              <button 
+                className="p-2 rounded-full hover:bg-primary-light/10 transition-all duration-200 group"
+                aria-label="Telegram"
+              >
+                <MessageSquare size={18} className="text-accent-light group-hover:text-white transition-colors duration-200" />
+              </button>
+            </div>
+
             <button 
               onClick={toggleDarkMode} 
               className="p-2 rounded-full hover:bg-primary-light/10 transition-all duration-200 active:scale-95"
@@ -73,7 +96,7 @@ const Header: React.FC<HeaderProps> = ({ darkMode, toggleDarkMode }) => {
         <div className={`
           md:hidden 
           transition-all duration-300 ease-in-out
-          ${isMenuOpen ? 'max-h-40 opacity-100 mt-4' : 'max-h-0 opacity-0 overflow-hidden'}
+          ${isMenuOpen ? 'max-h-48 opacity-100 mt-4' : 'max-h-0 opacity-0 overflow-hidden'}
         `}>
           <nav className="flex flex-col space-y-4 py-4 border-t border-primary-light/10">
             <Link 
@@ -90,6 +113,28 @@ const Header: React.FC<HeaderProps> = ({ darkMode, toggleDarkMode }) => {
             >
               Skorlar
             </Link>
+            
+            {/* Mobile Social Media Icons */}
+            <div className="flex items-center space-x-4 pt-2">
+              <button 
+                className="p-2 rounded-full hover:bg-primary-light/10 transition-all duration-200 group"
+                aria-label="Facebook"
+              >
+                <Facebook size={20} className="text-accent-light group-hover:text-white transition-colors duration-200" />
+              </button>
+              <button 
+                className="p-2 rounded-full hover:bg-primary-light/10 transition-all duration-200 group"
+                aria-label="Instagram"
+              >
+                <Instagram size={20} className="text-accent-light group-hover:text-white transition-colors duration-200" />
+              </button>
+              <button 
+                className="p-2 rounded-full hover:bg-primary-light/10 transition-all duration-200 group"
+                aria-label="Telegram"
+              >
+                <MessageSquare size={20} className="text-accent-light group-hover:text-white transition-colors duration-200" />
+              </button>
+            </div>
           </nav>
         </div>
       </div>

@@ -31,43 +31,42 @@ const ScoreCard: React.FC<ScoreCardProps> = ({ match, darkMode }) => {
       return 'FT';
     }
     
-    // Format upcoming match time
     const date = new Date(timeString);
     return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   };
 
   return (
-    <div className={`rounded-lg ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-50 hover:bg-gray-100'} p-4 transition-colors duration-200`}>
-      <div className="text-sm font-medium mb-2 flex justify-between items-center">
-        <span>{match.league}</span>
+    <div className={`flex-shrink-0 w-72 rounded-lg ${darkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-gray-50'} p-3 transition-colors duration-200 shadow-md`}>
+      <div className="text-xs font-medium mb-2 flex justify-between items-center">
+        <span className="text-accent-light">{match.league}</span>
         <span className={`${getStatusColor(match.status)}`}>
           {formatTime(match.time)}
         </span>
       </div>
       
       <div className="flex justify-between items-center">
-        <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 flex-shrink-0">
+        <div className="flex items-center space-x-2">
+          <div className="w-6 h-6 flex-shrink-0">
             <img 
               src={match.homeTeam.logo} 
               alt={match.homeTeam.name} 
               className="w-full h-full object-contain"
             />
           </div>
-          <span className="font-medium truncate max-w-[120px]">{match.homeTeam.name}</span>
+          <span className="font-medium text-sm truncate max-w-[80px]">{match.homeTeam.name}</span>
         </div>
         
         {match.status.toLowerCase() === 'scheduled' ? (
-          <div className="text-lg font-bold">vs</div>
+          <div className="text-sm font-bold px-2">vs</div>
         ) : (
-          <div className="text-lg font-bold">
+          <div className="text-sm font-bold px-2">
             {match.homeTeam.score} - {match.awayTeam.score}
           </div>
         )}
         
-        <div className="flex items-center space-x-3">
-          <span className="font-medium truncate max-w-[120px]">{match.awayTeam.name}</span>
-          <div className="w-8 h-8 flex-shrink-0">
+        <div className="flex items-center space-x-2">
+          <span className="font-medium text-sm truncate max-w-[80px]">{match.awayTeam.name}</span>
+          <div className="w-6 h-6 flex-shrink-0">
             <img 
               src={match.awayTeam.logo} 
               alt={match.awayTeam.name} 
