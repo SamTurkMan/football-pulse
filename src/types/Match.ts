@@ -1,7 +1,7 @@
 export interface Team {
   id: string;
   name: string;
-  logo: string;
+  logo: string | null;
   score: number;
 }
 
@@ -12,4 +12,6 @@ export interface Match {
   league: string;
   homeTeam: Team;
   awayTeam: Team;
+  date?: string;
+  startsIn?: string;
 }
