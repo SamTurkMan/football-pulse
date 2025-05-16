@@ -1,8 +1,11 @@
 // fetch-scores.js
+
 const fs    = require('fs');
 const path  = require('path');
 const fetch = require('node-fetch');
 require('dotenv').config();
+
+// ------------------- Конфиг -------------------
 
 const API_KEY = process.env.VITE_FOOTBALL_API_KEY;
 if (!API_KEY) {
@@ -17,7 +20,14 @@ const headers = {
   'x-rapidapi-host':  'v3.football.api-sports.io'
 };
 
-// Утилита для GET-запросов с логированием
+// Вычисляем текущий сезон (например, 2024 для сезона 2024–2025)
+const now    = new Date();
+const season = (now.getMonth() + 1 >= 7 ? now.getFullYear() : now.getFullYear() - 1).toString();
+console.log(`Using season=${season}`);
+
+// ------------------- Утилиты -------------------
+
+// Общая функция для GET-запросов с логированием
 async function apiGet(pathname) {
   const url = `${BASE_URL}${pathname}`;
   console.log(`→ GET ${url}`);
@@ -30,68 +40,16 @@ async function apiGet(pathname) {
   return json.response || [];
 }
 
-// 1) Получаем список всех лиг Турции
-async function fetchLeaguesForCountry(country = 'Turkey') {
-  try {
-    const data = await apiGet(`/leagues?country=${encodeURIComponent(country)}`);
-    const ids  = data.map(item => item.league.id);
-    console.log(`Found ${ids.length} leagues in ${country}:`, ids);
-    return ids;
-  } catch (err) {
-    console.error('Error fetching leagues:', err);
-    return [];
-  }
-}
-
-// 2) Универсальная функция: для списка leagueIds запрашиваем указанный endpointTemplate
-//    endpointTemplate — строка с {league}, например '/fixtures?live=all&league={league}'
-async function fetchFixturesByLeagues(endpointTemplate, leagueIds) {
-  const all = [];
-  for (const id of leagueIds) {
-    try {
-      const path = endpointTemplate.replace('{league}', id);
-      const fixtures = await apiGet(path);
-      console.log(` → League ${id} returned ${fixtures.length} items`);
-      all.push(...fixtures);
-    } catch (err) {
-      console.error(`Error fetching fixtures for league ${id}:`, err);
-    }
-  }
-  return all;
-}
-
-// 3) Собираем живые матчи
-async function fetchLiveMatches(leagueIds) {
-  return fetchFixturesByLeagues('/fixtures?live=all&league={league}', leagueIds);
-}
-
-// 4) Собираем матчи за сегодня
-async function fetchTodayMatches(leagueIds) {
-  const date = new Date().toISOString().split('T')[0];
-  return fetchFixturesByLeagues(`/fixtures?date=${date}&league={league}`, leagueIds);
-}
-
-// 5) Собираем предстоящие матчи на следующую неделю
-async function fetchUpcomingMatches(leagueIds) {
-  const today = new Date().toISOString().split('T')[0];
-  const next  = new Date(); next.setDate(next.getDate() + 7);
-  const to    = next.toISOString().split('T')[0];
-  return fetchFixturesByLeagues(
-    `/fixtures?from=${today}&to=${to}&status=NS&league={league}`,
-    leagueIds
-  );
-}
-
-// 6) Приводим каждый match к чистому JSON
+// Нормализация массива матчей в нужный формат
 function normalize(matches) {
   return matches.map(m => ({
     id:       `${m.fixture.id}`,
     status:   m.fixture.status.short,
     time:     m.fixture.status.short === 'FT'
-               ? 'Full Time'
-               : (m.fixture.status.elapsed != null
-                  ? `${m.fixture.status.elapsed}'`
-                  : m.fixture.date),
+                 ? 'Full Time'
+                 : (m.fixture.status.elapsed != null
+                    ? `${m.fixture.status.elapsed}'`
+                    : m.fixture.date),
     league:   m.league.name,
     homeTeam: {
       id:    `${m.teams.home.id}`,
@@ -108,7 +66,7 @@ function normalize(matches) {
   }));
 }
 
-// 7) Сохраняем всё в public/data/
+// Сохраняем JSON-файлы в public/data/
 function saveMatches(live, today, upcoming) {
   const dir = path.join(process.cwd(), 'public', 'data');
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -129,7 +87,68 @@ function saveMatches(live, today, upcoming) {
   console.log(`✅ Saved: live ${live.length}, today ${today.length}, upcoming ${upcoming.length}`);
 }
 
-// Запускаем весь процесс
+// ------------------- Основные шаги -------------------
+
+// 1) Получаем все лиги Турции
+async function fetchLeaguesForCountry(country = 'Turkey') {
+  try {
+    const data = await apiGet(`/leagues?country=${encodeURIComponent(country)}`);
+    const ids  = data.map(item => item.league.id);
+    console.log(`Found ${ids.length} leagues in ${country}:`, ids);
+    return ids;
+  } catch (err) {
+    console.error('Error fetching leagues:', err);
+    return [];
+  }
+}
+
+// 2) Для списка leagueIds запрашиваем fixtures по шаблону endpointTemplate
+async function fetchFixturesByLeagues(endpointTemplate, leagueIds) {
+  const all = [];
+  for (const id of leagueIds) {
+    try {
+      const path = endpointTemplate
+        .replace('{league}', id)
+        .replace('{season}', season);
+      const fixtures = await apiGet(path);
+      console.log(` → League ${id} returned ${fixtures.length} items`);
+      all.push(...fixtures);
+    } catch (err) {
+      console.error(`Error fetching fixtures for league ${id}:`, err);
+    }
+  }
+  return all;
+}
+
+// 3) Сбор живых матчей
+async function fetchLiveMatches(leagueIds) {
+  return fetchFixturesByLeagues(
+    '/fixtures?league={league}&season={season}&live=all',
+    leagueIds
+  );
+}
+
+// 4) Сбор матчей за сегодня
+async function fetchTodayMatches(leagueIds) {
+  const date = new Date().toISOString().split('T')[0];
+  return fetchFixturesByLeagues(
+    `/fixtures?league={league}&season={season}&date=${date}`,
+    leagueIds
+  );
+}
+
+// 5) Сбор предстоящих матчей на 7 дней вперёд
+async function fetchUpcomingMatches(leagueIds) {
+  const today = new Date().toISOString().split('T')[0];
+  const next  = new Date(); next.setDate(next.getDate() + 7);
+  const to    = next.toISOString().split('T')[0];
+  return fetchFixturesByLeagues(
+    `/fixtures?league={league}&season={season}&from=${today}&to=${to}&status=NS`,
+    leagueIds
+  );
+}
+
+// Главная функция
 (async () => {
   try {
     const leagueIds = await fetchLeaguesForCountry('Turkey');
