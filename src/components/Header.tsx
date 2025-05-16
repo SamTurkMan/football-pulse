@@ -75,7 +75,7 @@ const Header: React.FC<HeaderProps> = ({ darkMode, toggleDarkMode }) => {
               />
               <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full animate-pulse-fast" />
             </div>
-            <h1 className="text-xl md:text-2xl font-bold tracking-tight">FootballPulse</h1>
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight">FutbolNabzı</h1>
           </Link>
           
           {/* Desktop Navigation */}
