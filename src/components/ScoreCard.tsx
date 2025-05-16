@@ -8,124 +8,74 @@ interface ScoreCardProps {
 }
 
 const ScoreCard: React.FC<ScoreCardProps> = ({ match, darkMode }) => {
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'live':
-        return 'text-red-500';
-      case 'ft':
-      case 'full time':
-        return 'text-gray-500 dark:text-gray-400';
-      case 'ht':
-      case 'half time':
-        return 'text-yellow-500';
-      default:
-        return 'text-green-500';
-    }
-  };
-
-  const formatTime = (timeString: string) => {
-    if (match.status.toLowerCase() === 'live') {
-      return (
-        <div className="flex items-center space-x-1.5">
-          <span>CANLI</span>
-          <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></div>
-        </div>
-      );
-    }
-    
-    if (match.status.toLowerCase() === 'ht') {
-      return 'D.ARASI';
-    }
-    
-    if (match.status.toLowerCase() === 'ft') {
-      return 'TAMAM';
-    }
-    
-    // If it's a "minutes until match" format, return as is
-    if (timeString.includes('dk sonra')) {
-      return timeString;
-    }
-    
-    // Otherwise format the time
-    try {
-      const [hours, minutes] = timeString.split(':');
-      return `${hours}:${minutes}`;
-    } catch {
-      return timeString;
-    }
-  };
+  const isLive = match.status.toUpperCase() === 'LIVE';
+  const isScheduled = match.status === 'NS';
 
   const truncateTeamName = (name: string) => {
+    if (!name) return '';
     const wordsToRemove = ['Football Club', 'FC', 'United', 'City', 'Athletic'];
-    
     let shortened = name;
     wordsToRemove.forEach(word => {
       shortened = shortened.replace(new RegExp(word, 'gi'), '').trim();
     });
-    
-    if (shortened.length > 10) {
-      shortened = shortened.split(' ')[0];
-    }
-    
-    return shortened;
+    return shortened.length > 12 ? shortened.substring(0, 12) + '...' : shortened;
   };
 
   return (
-    <div className={`flex-shrink-0 w-[260px] sm:w-[280px] rounded-lg ${
-      darkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-gray-50'
-    } p-3 transition-all duration-300 transform hover:scale-[1.02] shadow-md`}>
-      <div className="text-xs font-medium mb-2.5 flex justify-between items-center">
-        <span className={`truncate max-w-[180px] ${darkMode ? 'text-accent-light' : 'text-primary'}`}>
-          {match.league}
+    <div className={`
+      flex-shrink-0 w-[280px] rounded-lg p-3 transition-all duration-300 
+      ${darkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-gray-50'}
+      ${isLive ? 'border-l-4 border-red-500' : ''}
+      shadow-md hover:shadow-lg
+    `}>
+      <div className="flex justify-between items-center mb-3">
+        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+          {match.date}
         </span>
-        <span className={`${getStatusColor(match.status)} ml-2 flex-shrink-0 flex items-center`}>
-          {formatTime(match.time)}
-        </span>
+        
+        {isLive && (
+          <div className="flex items-center space-x-2">
+            <span className="text-xs font-semibold text-red-500">CANLI</span>
+            <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+          </div>
+        )}
+        
+        {!isLive && (
+          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+            {match.time}
+          </span>
+        )}
+      </div>
+
+      <div className="text-xs font-medium mb-3 text-primary dark:text-accent-light">
+        {match.league}
       </div>
       
-      <div className="flex items-center">
-        <div className="flex items-center space-x-2 w-[100px] sm:w-[110px]">
-          <User 
-            size={18} 
-            className={`flex-shrink-0 transition-opacity duration-300 ${
-              darkMode ? 'text-white/80' : 'text-gray-600'
-            }`}
-          />
-          <span 
-            className={`font-medium text-sm truncate transition-all duration-300 hover:opacity-80 ${
-              darkMode ? 'text-white' : 'text-gray-900'
-            }`}
-            title={match.homeTeam.name}
-          >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2 flex-1">
+          <User size={18} className={`flex-shrink-0 ${darkMode ? 'text-white/80' : 'text-gray-600'}`} />
+          <span className={`font-medium text-sm truncate ${darkMode ? 'text-white' : 'text-gray-900'}`}>
             {truncateTeamName(match.homeTeam.name)}
           </span>
         </div>
         
-        <div className="flex-shrink-0 w-[44px] text-center mx-2">
-          {match.status.toLowerCase() === 'ns' ? (
-            <div className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>vs</div>
+        <div className="px-3 min-w-[60px] text-center">
+          {isScheduled ? (
+            <span className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+              vs
+            </span>
           ) : (
-            <div className={`text-sm font-bold tabular-nums ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+            <span className={`text-sm font-bold ${isLive ? 'text-red-500' : darkMode ? 'text-white' : 'text-gray-900'}`}>
               {match.homeTeam.score}-{match.awayTeam.score}
-            </div>
+            </span>
           )}
         </div>
         
-        <div className="flex items-center space-x-2 w-[100px] sm:w-[110px] justify-end">
-          <span 
-            className={`font-medium text-sm truncate text-right transition-all duration-300 hover:opacity-80 ${
-              darkMode ? 'text-white' : 'text-gray-900'
-            }`}
-            title={match.awayTeam.name}
-          >
+        <div className="flex items-center space-x-2 flex-1 justify-end">
+          <span className={`font-medium text-sm truncate text-right ${darkMode ? 'text-white' : 'text-gray-900'}`}>
             {truncateTeamName(match.awayTeam.name)}
           </span>
-          <User 
-            size={18} 
-            className={`flex-shrink-0 transition-opacity duration-300 ${
-              darkMode ? 'text-white/80' : 'text-gray-600'
-            }`}
-          />
+          <User size={18} className={`flex-shrink-0 ${darkMode ? 'text-white/80' : 'text-gray-600'}`} />
         </div>
       </div>
     </div>
