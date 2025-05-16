@@ -5,72 +5,76 @@ import { Match } from '../types/Match';
 const API_KEY  = '88eb6ed5d5aa074ac758f707e5a42e152e401d052f03bd95caf03e41e05a1872';
 const BASE_URL = 'https://apiv3.apifootball.com/';
 
+// Универсальная обёртка для GET-запроса
 async function apiGet(params: Record<string,string>): Promise<any[]> {
   const url = new URL(BASE_URL);
   url.searchParams.set('APIkey', API_KEY);
-  for (const [k,v] of Object.entries(params)) {
-    url.searchParams.set(k, v);
-  }
-  console.log(`→ GET ${url}`);
+  Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
   const res  = await fetch(url.toString());
   const body = await res.json();
-  if (!Array.isArray(body)) {
-    console.warn('⚠️ APIfootball returned non-array:', body);
-    return [];
-  }
+  if (!Array.isArray(body)) return [];
   return body;
 }
 
-async function getTurkeyCountryId(): Promise<string> {
-  const countries = await apiGet({ action: 'get_countries' });
-  const tr = countries.find(c => c.country_name.toLowerCase() === 'turkey');
-  if (!tr) throw new Error('Country "Turkey" not found');
-  return tr.country_id;
+// Парсим строку "YYYY-MM-DD HH:mm:ss" в JS-Date (UTC)
+function parseMatchDate(str: string): Date {
+  // Добавляем "Z", чтобы JS понял как UTC
+  return new Date(str.replace(' ', 'T') + 'Z');
 }
 
-async function getLeagueIds(countryId: string): Promise<string[]> {
-  const leagues = await apiGet({
-    action:     'get_leagues',
-    country_id: countryId
-  });
-  return leagues.map(l => l.league_id);
-}
-
-async function buildTeamLogoMap(leagueIds: string[]): Promise<Record<string,string>> {
-  const map: Record<string,string> = {};
-  for (const lid of leagueIds) {
-    const teams = await apiGet({
-      action:     'get_teams',
-      league_id:  lid
-    });
-    teams.forEach(t => {
-      if (t.team_id && t.team_logo) {
-        map[t.team_id] = t.team_logo;
-      }
-    });
-  }
-  return map;
-}
-
-function normalizeEvent(m: any, logos: Record<string,string>): Match {
-  const hid = m.match_hometeam_id.toString();
-  const aid = m.match_awayteam_id.toString();
+// Форматируем дату/время на выходе
+function formatDate(dt: Date) {
   return {
-    id:     m.match_id.toString(),
-    status: m.match_status,
-    time:   m.match_time || m.match_date,
-    league: m.league_name,
+    date: dt.toLocaleDateString('tr-TR', {
+      day:   'numeric',
+      month: 'long',
+      year:  'numeric'
+    }),
+    time: dt.toLocaleTimeString('tr-TR', {
+      hour:   '2-digit',
+      minute: '2-digit'
+    })
+  };
+}
+
+// Вычисляем «через сколько» матч начнётся или идёт
+function computeStartsIn(dt: Date, status: string): string {
+  const now = new Date();
+  if (status === 'LIVE')     return 'LIVE';
+  if (status === 'FT')       return 'Finished';
+  const diffMs = dt.getTime() - now.getTime();
+  if (diffMs <= 0)           return 'Starting soon';
+  const diffMin = Math.floor(diffMs / 60000);
+  const h = Math.floor(diffMin / 60);
+  const m = diffMin % 60;
+  if (h > 0) return `in ${h}h ${m}m`;
+  return `in ${m}m`;
+}
+
+// Нормализация одного события из APIfootball в Match
+function normalizeEvent(m: any): Match {
+  const matchDt = parseMatchDate(m.match_date);                     // JS Date
+  const { date, time } = formatDate(matchDt);                      // formatted
+  const startsIn = computeStartsIn(matchDt, m.match_status);       // relative
+
+  return {
+    id:       m.match_id.toString(),
+    status:   m.match_status,   // e.g. 'NS', 'LIVE', 'FT'
+    date,                       // "16 Mayıs 2025"
+    time,                       // "15:30"
+    startsIn,                   // "in 2h 15m" or "LIVE"/"Finished"
+    league:   m.league_name,
     homeTeam: {
-      id:    hid,
-      name:  m.match_hometeam_name,
-      logo:  logos[hid] ?? null,
-      score: m.match_hometeam_score
+      id:     m.match_hometeam_id.toString(),
+      name:   m.match_hometeam_name,
+      logo:   m.home_team_logo || null,
+      score:  m.match_hometeam_score
     },
     awayTeam: {
-      id:    aid,
-      name:  m.match_awayteam_name,
-      logo:  logos[aid] ?? null,
-      score: m.match_awayteam_score
+      id:     m.match_awayteam_id.toString(),
+      name:   m.match_awayteam_name,
+      logo:   m.match_awayteam_logo || null,
+      score:  m.match_awayteam_score
     }
   };
 }
@@ -79,40 +83,32 @@ export const fetchFootballScores = async (
   type: 'live' | 'today' | 'upcoming'
 ): Promise<Match[]> => {
   try {
-    // 1) Получаем все лиги Турции
-    const countryId = await getTurkeyCountryId();
-    const leagues   = await getLeagueIds(countryId);
-
-    // 2) Строим карту team_id → team_logo
-    const logoMap = await buildTeamLogoMap(leagues);
-
-    // 3) Определяем даты
+    // Даты для «today»/«upcoming»
     const today = new Date().toISOString().slice(0,10);
-    const nextWeek = new Date();
-    nextWeek.setDate(nextWeek.getDate() + 7);
-    const to = nextWeek.toISOString().slice(0,10);
+    const next  = new Date(); next.setDate(next.getDate() + 7);
+    const to    = next.toISOString().slice(0,10);
 
-    // 4) Собираем матчи по всем лигам
-    const results: Record<string,Match> = {};
-
-    for (const lid of leagues) {
-      let events: any[] = [];
-
-      if (type === 'live') {
-        events = await apiGet({ action: 'get_live_scores', league_id: lid });
-      } else if (type === 'today') {
-        events = await apiGet({ action: 'get_events', league_id: lid, from: today, to: today });
-      } else { // upcoming
-        events = await apiGet({ action: 'get_events', league_id: lid, from: today, to });
-      }
-
-      events.forEach(e => {
-        const match = normalizeEvent(e, logoMap);
-        results[match.id] = match; // убираем дубликаты
-      });
+    // Строим запрос по type
+    let params: Record<string,string>;
+    switch (type) {
+      case 'live':
+        params = { action:'get_live_scores', live:'all' };
+        break;
+      case 'today':
+        params = { action:'get_events', date: today };
+        break;
+      case 'upcoming':
+        params = { action:'get_events', from: today, to, status:'NS' };
+        break;
     }
 
-    return Object.values(results);
+    // Запрашиваем данные
+    const raw: any[] = await apiGet(params);
+
+    // Нормализуем всё в Match[] с точной датой/временем/startsIn
+    const matches = raw.map(normalizeEvent);
+
+    return matches;
   } catch (err) {
     console.error('Error fetching football scores:', err);
     return [];
