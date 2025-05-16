@@ -1,129 +1,95 @@
-// src/services/scoresService.ts
-
 import { Match } from '../types/Match';
 
-const API_KEY  = '88eb6ed5d5aa074ac758f707e5a42e152e401d052f03bd95caf03e41e05a1872';
+const API_KEY = '88eb6ed5d5aa074ac758f707e5a42e152e401d052f03bd95caf03e41e05a1872';
 const BASE_URL = 'https://apiv3.apifootball.com/';
 
-/** Универсальный GET → [] при ошибке или не-массиве */
-async function apiGet(params: Record<string,string>): Promise<any[]> {
-  const url = new URL(BASE_URL);
-  url.searchParams.set('APIkey', API_KEY);
-  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
-  const res  = await fetch(url.toString());
-  const body = await res.json();
-  return Array.isArray(body) ? body : [];
-}
-
-/** Парсит "YYYY-MM-DD HH:mm:ss" в UTC Date */
-function parseMatchDate(str: string): Date {
-  return new Date(str.replace(' ', 'T') + 'Z');
-}
-
-/** Форматирует Date → { date, time } для турецкой локали */
-function formatDate(dt: Date): { date: string; time: string } {
-  return {
-    date: dt.toLocaleDateString('tr-TR', {
-      day:   'numeric',
-      month: 'long',
-      year:  'numeric'
-    }),
-    time: dt.toLocaleTimeString('tr-TR', {
-      hour:   '2-digit',
-      minute: '2-digit'
-    })
-  };
-}
-
-/** Вычисляет "LIVE"/"Finished"/"in Xh Ym"/"Starting soon" */
-function computeStartsIn(dt: Date, status: string): string {
+const formatMatchTime = (date: string, time: string) => {
+  const matchDateTime = new Date(`${date} ${time}`);
   const now = new Date();
-  if (status === 'LIVE') return 'LIVE';
-  if (status === 'FT')   return 'Finished';
+  const diffInMinutes = Math.floor((matchDateTime.getTime() - now.getTime()) / (1000 * 60));
+  
+  if (diffInMinutes > 0 && diffInMinutes <= 120) {
+    return `${diffInMinutes} dk sonra`;
+  }
+  
+  return time;
+};
 
-  const diffMs  = dt.getTime() - now.getTime();
-  if (diffMs <= 0)        return 'Starting soon';
-
-  const diffMin = Math.floor(diffMs / 60000);
-  const h       = Math.floor(diffMin / 60);
-  const m       = diffMin % 60;
-  return h > 0 ? `in ${h}h ${m}m` : `in ${m}m`;
-}
-
-/** Преобразует «сырое» событие API в объект Match */
-function normalizeEvent(m: any): Match {
-  const dt = parseMatchDate(m.match_date);
-  const { date, time } = formatDate(dt);
-  const startsIn       = computeStartsIn(dt, m.match_status);
-
-  return {
-    id:       m.match_id.toString(),
-    status:   m.match_status,   // "NS" | "LIVE" | "FT"
-    date,                       // "16 Mayıs 2025"
-    time,                       // "15:30"
-    startsIn,                   // "in 2h 5m" | "LIVE" | "Finished"
-    league:   m.league_name,
-    homeTeam: {
-      id:    m.match_hometeam_id  .toString(),
-      name:  m.match_hometeam_name,
-      logo:  m.match_hometeam_logo ?? null,
-      score: m.match_hometeam_score
-    },
-    awayTeam: {
-      id:    m.match_awayteam_id  .toString(),
-      name:  m.match_awayteam_name,
-      logo:  m.match_awayteam_logo ?? null,
-      score: m.match_awayteam_score
-    }
-  };
-}
-
-/**
- * Возвращает Match[] для:
- *  - 'live'     — только LIVE-матчи
- *  - 'today'    — матчи на сегодня (NS + LIVE)
- *  - 'upcoming' — до 10 ближайших NS-матчей
- */
-export async function fetchFootballScores(
-  type: 'live' | 'today' | 'upcoming'
-): Promise<Match[]> {
+export const fetchFootballScores = async (type: 'live' | 'today' | 'upcoming'): Promise<Match[]> => {
   try {
-    const today = new Date().toISOString().slice(0,10);
-    const toDate = new Date();
-    toDate.setDate(toDate.getDate() + 7);
-    const to = toDate.toISOString().slice(0,10);
+    const today = new Date().toISOString().split('T')[0];
+    let endpoint = '';
 
-    let params: Record<string,string>;
-
-    if (type === 'live') {
-      params = { action:'get_live_scores', live:'all' };
-    } else if (type === 'today') {
-      params = { action:'get_events', date: today };
-    } else {
-      params = { action:'get_events', from: today, to, status:'NS' };
+    switch (type) {
+      case 'live':
+        endpoint = `?action=get_events&match_live=1&APIkey=${API_KEY}`;
+        break;
+      case 'today':
+        endpoint = `?action=get_events&from=${today}&to=${today}&APIkey=${API_KEY}`;
+        break;
+      case 'upcoming':
+        const nextWeek = new Date();
+        nextWeek.setDate(nextWeek.getDate() + 7);
+        const toDate = nextWeek.toISOString().split('T')[0];
+        endpoint = `?action=get_events&from=${today}&to=${toDate}&APIkey=${API_KEY}`;
+        break;
     }
 
-    let raw = await apiGet(params);
+    const response = await fetch(`${BASE_URL}${endpoint}`);
+    const data = await response.json();
 
-    if (type === 'live') {
-      raw = raw.filter((m:any) => m.match_status === 'LIVE');
-    }
-    if (type === 'today') {
-      raw = raw.filter((m:any) => ['NS','LIVE'].includes(m.match_status));
-    }
-    if (type === 'upcoming') {
-      raw = raw
-        .filter((m:any) => m.match_status === 'NS')
-        .sort((a:any,b:any) =>
-          parseMatchDate(a.match_date).getTime() -
-          parseMatchDate(b.match_date).getTime()
-        )
-        .slice(0,10);
+    if (!Array.isArray(data)) {
+      throw new Error('Invalid API response');
     }
 
-    return raw.map(normalizeEvent);
-  } catch (err) {
-    console.error('Error fetching football scores:', err);
+    const matches = data.map((match: any) => {
+      const matchTime = formatMatchTime(match.match_date, match.match_time);
+      
+      return {
+        id: match.match_id,
+        status: match.match_status || 'NS',
+        time: matchTime,
+        league: match.league_name,
+        homeTeam: {
+          id: match.match_hometeam_id,
+          name: match.match_hometeam_name,
+          logo: null,
+          score: parseInt(match.match_hometeam_score) || 0
+        },
+        awayTeam: {
+          id: match.match_awayteam_id,
+          name: match.match_awayteam_name,
+          logo: null,
+          score: parseInt(match.match_awayteam_score) || 0
+        },
+        date: match.match_date,
+        startsIn: match.match_status === '' ? matchTime : undefined
+      };
+    });
+
+    // Sort matches by priority and limit to 10
+    return matches
+      .sort((a, b) => {
+        // Live matches first
+        if (a.status === 'LIVE' && b.status !== 'LIVE') return -1;
+        if (b.status === 'LIVE' && a.status !== 'LIVE') return 1;
+
+        // Then matches starting soon
+        if (a.startsIn?.includes('dk sonra') && !b.startsIn?.includes('dk sonra')) return -1;
+        if (b.startsIn?.includes('dk sonra') && !a.startsIn?.includes('dk sonra')) return 1;
+
+        // Then upcoming matches
+        if (a.status === 'NS' && b.status === 'FT') return -1;
+        if (b.status === 'NS' && a.status === 'FT') return 1;
+
+        // Sort by time for same status
+        const timeA = new Date(`${a.date} ${a.time}`).getTime();
+        const timeB = new Date(`${b.date} ${b.time}`).getTime();
+        return timeA - timeB;
+      })
+      .slice(0, 10);
+  } catch (error) {
+    console.error('Error fetching football scores:', error);
     return [];
   }
-}
+};

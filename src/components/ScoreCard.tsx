@@ -24,16 +24,35 @@ const ScoreCard: React.FC<ScoreCardProps> = ({ match, darkMode }) => {
   };
 
   const formatTime = (timeString: string) => {
-    if (match.status.toLowerCase() === 'live' || match.status.toLowerCase() === 'ht' || match.status.toLowerCase() === 'half time') {
-      return match.status;
+    if (match.status.toLowerCase() === 'live') {
+      return (
+        <div className="flex items-center space-x-1.5">
+          <span>CANLI</span>
+          <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></div>
+        </div>
+      );
     }
     
-    if (match.status.toLowerCase() === 'ft' || match.status.toLowerCase() === 'full time') {
-      return 'FT';
+    if (match.status.toLowerCase() === 'ht') {
+      return 'D.ARASI';
     }
     
-    const date = new Date(timeString);
-    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    if (match.status.toLowerCase() === 'ft') {
+      return 'TAMAM';
+    }
+    
+    // If it's a "minutes until match" format, return as is
+    if (timeString.includes('dk sonra')) {
+      return timeString;
+    }
+    
+    // Otherwise format the time
+    try {
+      const [hours, minutes] = timeString.split(':');
+      return `${hours}:${minutes}`;
+    } catch {
+      return timeString;
+    }
   };
 
   const truncateTeamName = (name: string) => {
@@ -59,7 +78,7 @@ const ScoreCard: React.FC<ScoreCardProps> = ({ match, darkMode }) => {
         <span className={`truncate max-w-[180px] ${darkMode ? 'text-accent-light' : 'text-primary'}`}>
           {match.league}
         </span>
-        <span className={`${getStatusColor(match.status)} ml-2 flex-shrink-0`}>
+        <span className={`${getStatusColor(match.status)} ml-2 flex-shrink-0 flex items-center`}>
           {formatTime(match.time)}
         </span>
       </div>
@@ -83,7 +102,7 @@ const ScoreCard: React.FC<ScoreCardProps> = ({ match, darkMode }) => {
         </div>
         
         <div className="flex-shrink-0 w-[44px] text-center mx-2">
-          {match.status.toLowerCase() === 'scheduled' ? (
+          {match.status.toLowerCase() === 'ns' ? (
             <div className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>vs</div>
           ) : (
             <div className={`text-sm font-bold tabular-nums ${darkMode ? 'text-white' : 'text-gray-900'}`}>
