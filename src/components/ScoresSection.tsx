@@ -12,17 +12,37 @@ interface ScoresSectionProps {
 const ScoresSection: React.FC<ScoresSectionProps> = ({ darkMode }) => {
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'live' | 'today' | 'upcoming'>('live');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(true);
 
   useEffect(() => {
-    const loadScores = async () => {
+    const loadAllScores = async () => {
       try {
         setLoading(true);
-        const data = await fetchFootballScores(activeTab);
-        setMatches(data);
+        const [liveMatches, todayMatches, upcomingMatches] = await Promise.all([
+          fetchFootballScores('live'),
+          fetchFootballScores('today'),
+          fetchFootballScores('upcoming')
+        ]);
+
+        // Combine and sort matches
+        const allMatches = [
+          ...liveMatches,
+          ...todayMatches.filter(match => match.status.toLowerCase() !== 'live'),
+          ...upcomingMatches
+        ].sort((a, b) => {
+          // Live matches first
+          if (a.status.toLowerCase() === 'live' && b.status.toLowerCase() !== 'live') return -1;
+          if (b.status.toLowerCase() === 'live' && a.status.toLowerCase() !== 'live') return 1;
+          
+          // Then by time
+          const timeA = new Date(a.time).getTime();
+          const timeB = new Date(b.time).getTime();
+          return timeA - timeB;
+        });
+
+        setMatches(allMatches);
       } catch (error) {
         console.error('Failed to fetch football scores:', error);
       } finally {
@@ -30,17 +50,11 @@ const ScoresSection: React.FC<ScoresSectionProps> = ({ darkMode }) => {
       }
     };
 
-    loadScores();
+    loadAllScores();
+    const interval = setInterval(loadAllScores, 60000); // Update every minute
     
-    let interval: number | undefined;
-    if (activeTab === 'live') {
-      interval = window.setInterval(loadScores, 60000);
-    }
-    
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [activeTab]);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleScroll = () => {
     if (scrollContainerRef.current) {
@@ -56,7 +70,6 @@ const ScoresSection: React.FC<ScoresSectionProps> = ({ darkMode }) => {
       container.addEventListener('scroll', handleScroll);
       handleScroll();
       
-      // Check for overflow initially and on resize
       const checkOverflow = () => {
         if (container) {
           const hasOverflow = container.scrollWidth > container.clientWidth;
@@ -87,40 +100,7 @@ const ScoresSection: React.FC<ScoresSectionProps> = ({ darkMode }) => {
 
   return (
     <section className="w-full bg-primary dark:bg-primary-dark shadow-md relative">
-      <div className="container mx-auto px-4 py-2">
-        <div className="flex items-center justify-center sm:justify-start space-x-4 mb-2">
-          <button
-            onClick={() => setActiveTab('live')}
-            className={`text-sm font-medium px-3 py-1 rounded-full transition-all duration-300 transform hover:scale-105 ${
-              activeTab === 'live' 
-                ? 'bg-accent text-white' 
-                : 'text-accent-light hover:text-white'
-            }`}
-          >
-            Canlı
-          </button>
-          <button
-            onClick={() => setActiveTab('today')}
-            className={`text-sm font-medium px-3 py-1 rounded-full transition-all duration-300 transform hover:scale-105 ${
-              activeTab === 'today' 
-                ? 'bg-accent text-white' 
-                : 'text-accent-light hover:text-white'
-            }`}
-          >
-            Bugün
-          </button>
-          <button
-            onClick={() => setActiveTab('upcoming')}
-            className={`text-sm font-medium px-3 py-1 rounded-full transition-all duration-300 transform hover:scale-105 ${
-              activeTab === 'upcoming' 
-                ? 'bg-accent text-white' 
-                : 'text-accent-light hover:text-white'
-            }`}
-          >
-            Yaklaşan
-          </button>
-        </div>
-        
+      <div className="container mx-auto px-4 py-4">
         <div className="relative">
           {showLeftArrow && (
             <button
