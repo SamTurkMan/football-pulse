@@ -1,38 +1,38 @@
 [
   {
     "id": "556370",
-    "status": "",
+    "status": "After ET",
     "time": "15:00",
     "league": "2. Lig - Promotion Play-offs - 2nd Round",
     "homeTeam": {
       "id": "7734",
       "name": "Aksaray Bld.",
       "logo": null,
-      "score": ""
+      "score": "0"
     },
     "awayTeam": {
       "id": "7645",
       "name": "Vanspor FK",
       "logo": null,
-      "score": ""
+      "score": "1"
     }
   },
   {
     "id": "556371",
-    "status": "",
+    "status": "Finished",
     "time": "15:00",
     "league": "2. Lig - Promotion Play-offs - 2nd Round",
     "homeTeam": {
       "id": "7660",
       "name": "Kastamonuspor",
       "logo": null,
-      "score": ""
+      "score": "0"
     },
     "awayTeam": {
       "id": "7668",
       "name": "Altinordu",
       "logo": null,
-      "score": ""
+      "score": "0"
     }
   }
 ]
