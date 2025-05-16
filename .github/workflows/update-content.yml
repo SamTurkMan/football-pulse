@@ -1,15 +1,17 @@
 name: Update Football Content
+
 permissions:
   contents: write
 
 on:
   schedule:
-    - cron: '0 20 * * *'
+    - cron: '0 20 * * *'   # каждый день в 20:00 UTC
   workflow_dispatch:
 
 jobs:
   update-content:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -28,12 +30,14 @@ jobs:
 
       - name: Create .env file
         run: |
-          # ключ для APIfootball.com
+          # 1) Ключ для APIfootball.com
           echo "APIFOOTBALL_API_KEY=${{ secrets.APIFOOTBALL_API_KEY }}" >> .env
-          # ключи для новостей
+
+          # 2) Ключи для fetch-news.js
           echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}"              >> .env
           echo "VITE_NEWS_SOURCE_URL=${{ secrets.VITE_NEWS_SOURCE_URL }}" >> .env
-          # лимиты для переписи статей
+
+          # 3) Лимиты для переписи статей
           echo "DAILY_LIMIT=5"                                           >> .env
           echo "THROTTLE_MS=120000"                                      >> .env
 
