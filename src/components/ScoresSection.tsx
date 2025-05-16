@@ -54,15 +54,29 @@ const ScoresSection: React.FC<ScoresSectionProps> = ({ darkMode }) => {
     const container = scrollContainerRef.current;
     if (container) {
       container.addEventListener('scroll', handleScroll);
-      // Check initial scroll position
       handleScroll();
-      return () => container.removeEventListener('scroll', handleScroll);
+      
+      // Check for overflow initially and on resize
+      const checkOverflow = () => {
+        if (container) {
+          const hasOverflow = container.scrollWidth > container.clientWidth;
+          setShowRightArrow(hasOverflow);
+        }
+      };
+      
+      checkOverflow();
+      window.addEventListener('resize', checkOverflow);
+      
+      return () => {
+        container.removeEventListener('scroll', handleScroll);
+        window.removeEventListener('resize', checkOverflow);
+      };
     }
   }, [matches]);
 
   const scroll = (direction: 'left' | 'right') => {
     if (scrollContainerRef.current) {
-      const scrollAmount = 300;
+      const scrollAmount = window.innerWidth < 640 ? 200 : 300;
       const newScrollLeft = scrollContainerRef.current.scrollLeft + (direction === 'left' ? -scrollAmount : scrollAmount);
       scrollContainerRef.current.scrollTo({
         left: newScrollLeft,
@@ -71,22 +85,13 @@ const ScoresSection: React.FC<ScoresSectionProps> = ({ darkMode }) => {
     }
   };
 
-  // Handle mouse wheel horizontal scrolling
-  const handleWheel = (e: React.WheelEvent) => {
-    if (scrollContainerRef.current && e.deltaY !== 0) {
-      e.preventDefault();
-      scrollContainerRef.current.scrollLeft += e.deltaY;
-      handleScroll();
-    }
-  };
-
   return (
     <section className="w-full bg-primary dark:bg-primary-dark shadow-md relative">
       <div className="container mx-auto px-4 py-2">
-        <div className="flex items-center space-x-4 mb-2">
+        <div className="flex items-center justify-center sm:justify-start space-x-4 mb-2">
           <button
             onClick={() => setActiveTab('live')}
-            className={`text-sm font-medium px-3 py-1 rounded-full transition-colors duration-200 ${
+            className={`text-sm font-medium px-3 py-1 rounded-full transition-all duration-300 transform hover:scale-105 ${
               activeTab === 'live' 
                 ? 'bg-accent text-white' 
                 : 'text-accent-light hover:text-white'
@@ -96,7 +101,7 @@ const ScoresSection: React.FC<ScoresSectionProps> = ({ darkMode }) => {
           </button>
           <button
             onClick={() => setActiveTab('today')}
-            className={`text-sm font-medium px-3 py-1 rounded-full transition-colors duration-200 ${
+            className={`text-sm font-medium px-3 py-1 rounded-full transition-all duration-300 transform hover:scale-105 ${
               activeTab === 'today' 
                 ? 'bg-accent text-white' 
                 : 'text-accent-light hover:text-white'
@@ -106,7 +111,7 @@ const ScoresSection: React.FC<ScoresSectionProps> = ({ darkMode }) => {
           </button>
           <button
             onClick={() => setActiveTab('upcoming')}
-            className={`text-sm font-medium px-3 py-1 rounded-full transition-colors duration-200 ${
+            className={`text-sm font-medium px-3 py-1 rounded-full transition-all duration-300 transform hover:scale-105 ${
               activeTab === 'upcoming' 
                 ? 'bg-accent text-white' 
                 : 'text-accent-light hover:text-white'
@@ -117,34 +122,31 @@ const ScoresSection: React.FC<ScoresSectionProps> = ({ darkMode }) => {
         </div>
         
         <div className="relative">
-          {/* Left scroll button */}
           {showLeftArrow && (
             <button
               onClick={() => scroll('left')}
-              className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-primary/80 dark:bg-primary-dark/80 backdrop-blur-sm p-1 rounded-full shadow-lg transform transition-all duration-200 hover:scale-110"
+              className="absolute -left-2 sm:left-0 top-1/2 -translate-y-1/2 z-10 bg-primary/90 dark:bg-primary-dark/90 backdrop-blur-sm p-1.5 rounded-full shadow-lg transition-all duration-300 hover:scale-110 active:scale-95"
               aria-label="Scroll left"
             >
-              <ChevronLeft className="w-6 h-6 text-white" />
+              <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </button>
           )}
 
-          {/* Right scroll button */}
           {showRightArrow && (
             <button
               onClick={() => scroll('right')}
-              className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-primary/80 dark:bg-primary-dark/80 backdrop-blur-sm p-1 rounded-full shadow-lg transform transition-all duration-200 hover:scale-110"
+              className="absolute -right-2 sm:right-0 top-1/2 -translate-y-1/2 z-10 bg-primary/90 dark:bg-primary-dark/90 backdrop-blur-sm p-1.5 rounded-full shadow-lg transition-all duration-300 hover:scale-110 active:scale-95"
               aria-label="Scroll right"
             >
-              <ChevronRight className="w-6 h-6 text-white" />
+              <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </button>
           )}
 
           <div 
             ref={scrollContainerRef}
-            onWheel={handleWheel}
-            className="overflow-x-auto pb-2 hide-scrollbar relative"
+            className="overflow-x-auto pb-2 hide-scrollbar relative scroll-smooth"
           >
-            <div className="flex space-x-4 min-w-max px-8">
+            <div className="flex space-x-3 sm:space-x-4 min-w-max px-6 sm:px-8">
               {loading ? (
                 <>
                   <ScoreCardSkeleton darkMode={darkMode} />
