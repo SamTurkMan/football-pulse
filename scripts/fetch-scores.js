@@ -1,66 +1,87 @@
-// fetch-scores.js
+// scripts/fetch-scores.js
 
 const fs    = require('fs');
 const path  = require('path');
 const fetch = require('node-fetch');
 require('dotenv').config();
 
-// ------------------- Конфиг -------------------
-
-const API_KEY = process.env.VITE_FOOTBALL_API_KEY;
+// === Конфиг ===
+const API_KEY = process.env.APIFOOTBALL_API_KEY;  // ваш ключ: 88eb6ed5d…
 if (!API_KEY) {
-  console.error('Error: VITE_FOOTBALL_API_KEY is not set');
+  console.error('Error: APIFOOTBALL_API_KEY is not set');
   process.exit(1);
 }
+const BASE_URL = 'https://apifootball.com/api/';
 
-const BASE_URL = 'https://v3.football.api-sports.io';
-const headers = {
-  'Content-Type':     'application/json',
-  'x-apisports-key':  API_KEY,
-  'x-rapidapi-host':  'v3.football.api-sports.io'
-};
-
-// Теперь просто текущий год
-const season = new Date().getFullYear().toString();
-console.log(`Using season=${season}`);
-
-// ------------------- Утилиты -------------------
-
-async function apiGet(pathname) {
-  const url = `${BASE_URL}${pathname}`;
+// === Утилита GET-запросов ===
+async function apiGet(params) {
+  const url = new URL(BASE_URL);
+  for (const [k, v] of Object.entries(params)) {
+    url.searchParams.set(k, v);
+  }
   console.log(`→ GET ${url}`);
-  const res = await fetch(url, { headers });
-  console.log(`← ${res.status} ${res.statusText}`);
+  const res  = await fetch(url);
   const json = await res.json();
-  if (!res.ok) throw new Error(`API error ${res.status}: ${JSON.stringify(json)}`);
-  return json.response || [];
+  if (!Array.isArray(json)) {
+    throw new Error(`Unexpected APIfootball response: ${JSON.stringify(json)}`);
+  }
+  return json;
 }
 
+// === Шаг 1: узнать country_id для Turkey ===
+async function fetchTurkeyCountryId() {
+  const countries = await apiGet({ action: 'get_countries', APIkey: API_KEY });
+  const tur = countries.find(c => c.country_name.toLowerCase() === 'turkey');
+  if (!tur) throw new Error('Country "Turkey" not found in APIfootball response');
+  console.log(`Turkey country_id = ${tur.country_id}`);
+  return tur.country_id;
+}
+
+// === Шаг 2: live-матчи ===
+async function fetchLiveMatches(country_id) {
+  // метод get_live_scores возвращает все живые матчи
+  return apiGet({
+    action:     'get_live_scores',
+    country_id: country_id,
+    APIkey:     API_KEY
+  });
+}
+
+// === Шаг 3: матчи за указанный период ===
+async function fetchMatchesByDate(country_id, from, to) {
+  // метод get_events — возвращает и прошедшие, и будущие матчи
+  return apiGet({
+    action:     'get_events',
+    from:       from,
+    to:         to,
+    country_id: country_id,
+    APIkey:     API_KEY
+  });
+}
+
+// === Нормализация под ваш фронтенд ===
 function normalize(matches) {
   return matches.map(m => ({
-    id:       `${m.fixture.id}`,
-    status:   m.fixture.status.short,
-    time:     m.fixture.status.short === 'FT'
-                 ? 'Full Time'
-                 : (m.fixture.status.elapsed != null
-                    ? `${m.fixture.status.elapsed}'`
-                    : m.fixture.date),
-    league:   m.league.name,
+    id:       m.match_id,
+    status:   m.match_status,                    // FT, NS, LIVE...
+    time:     m.match_time || m.match_date,      // если live — в match_time; иначе дата
+    league:   m.league_name,
     homeTeam: {
-      id:    `${m.teams.home.id}`,
-      name:  m.teams.home.name,
-      logo:  m.teams.home.logo,
-      score: m.goals.home || 0
+      id:    m.match_hometeam_id,
+      name:  m.match_hometeam_name,
+      logo:  m.home_team_logo,                   // если есть
+      score: m.match_hometeam_score
     },
     awayTeam: {
-      id:    `${m.teams.away.id}`,
-      name:  m.teams.away.name,
-      logo:  m.teams.away.logo,
-      score: m.goals.away || 0
+      id:    m.match_awayteam_id,
+      name:  m.match_awayteam_name,
+      logo:  m.away_team_logo,                   // если есть
+      score: m.match_awayteam_score
     }
   }));
 }
 
+// === Сохраняем в public/data/ ===
 function saveMatches(live, today, upcoming) {
   const dir = path.join(process.cwd(), 'public', 'data');
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -77,26 +98,24 @@ function saveMatches(live, today, upcoming) {
     path.join(dir, 'upcoming-matches.json'),
     JSON.stringify(normalize(upcoming), null, 2)
   );
-
   console.log(`✅ Saved: live ${live.length}, today ${today.length}, upcoming ${upcoming.length}`);
 }
 
-// ------------------- Основной процесс -------------------
-
+// === Главная функция ===
 (async () => {
   try {
-    // 1) Получаем все лиги Турции
-    const leaguesData = await apiGet('/leagues?country=Turkey');
-    const leagueIds   = leaguesData.map(l => l.league.id);
-    console.log(`Found ${leagueIds.length} Turkish leagues:`, leagueIds);
+    const country_id = await fetchTurkeyCountryId();
 
-    // 2) Сбор матчей: live, today, upcoming
+    const todayStr = new Date().toISOString().split('T')[0];
+    const nextWeek = new Date();
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    const toStr    = nextWeek.toISOString().split('T')[0];
+
+    // параллельно грузим три набора
     const [live, today, upcoming] = await Promise.all([
-      apiGet(`/fixtures?league=${leagueIds.join(',')}&season=${season}&live=all`),
-      apiGet(`/fixtures?league=${leagueIds.join(',')}&season=${season}&date=${new Date().toISOString().split('T')[0]}`),
-      apiGet(`/fixtures?league=${leagueIds.join(',')}&season=${season}&from=${new Date().toISOString().split('T')[0]}&to=${(() => { 
-        const d = new Date(); d.setDate(d.getDate()+7); return d.toISOString().split('T')[0];
-      })()}&status=NS`)
+      fetchLiveMatches(country_id),                                         // Livescore :contentReference[oaicite:0]{index=0}
+      fetchMatchesByDate(country_id, todayStr, todayStr),                   // Сегодня
+      fetchMatchesByDate(country_id, todayStr, toStr)                       // Следующие 7 дней :contentReference[oaicite:1]{index=1}
     ]);
 
     saveMatches(live, today, upcoming);
