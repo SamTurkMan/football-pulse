@@ -1,1 +1,272 @@
-[]
+[
+  {
+    "id": "556370",
+    "status": "",
+    "time": "15:00",
+    "league": "2. Lig - Promotion Play-offs - 2nd Round",
+    "homeTeam": {
+      "id": "7734",
+      "name": "Aksaray Bld.",
+      "logo": null,
+      "score": ""
+    },
+    "awayTeam": {
+      "id": "7645",
+      "name": "Vanspor FK",
+      "logo": null,
+      "score": ""
+    }
+  },
+  {
+    "id": "556371",
+    "status": "",
+    "time": "15:00",
+    "league": "2. Lig - Promotion Play-offs - 2nd Round",
+    "homeTeam": {
+      "id": "7660",
+      "name": "Kastamonuspor",
+      "logo": null,
+      "score": ""
+    },
+    "awayTeam": {
+      "id": "7668",
+      "name": "Altinordu",
+      "logo": null,
+      "score": ""
+    }
+  },
+  {
+    "id": "557121",
+    "status": "",
+    "time": "14:30",
+    "league": "3. Lig - Promotion Play-offs - 3rd Round",
+    "homeTeam": {
+      "id": "32504",
+      "name": "Sebat Gençlikspor",
+      "logo": null,
+      "score": ""
+    },
+    "awayTeam": {
+      "id": "37124",
+      "name": "Kahramanmaraş İstiklalsp",
+      "logo": null,
+      "score": ""
+    }
+  },
+  {
+    "id": "557123",
+    "status": "",
+    "time": "15:00",
+    "league": "3. Lig - Promotion Play-offs - 3rd Round",
+    "homeTeam": {
+      "id": "7688",
+      "name": "Karşıyaka",
+      "logo": null,
+      "score": ""
+    },
+    "awayTeam": {
+      "id": "16755",
+      "name": "Muş Spor",
+      "logo": null,
+      "score": ""
+    }
+  },
+  {
+    "id": "557125",
+    "status": "",
+    "time": "15:00",
+    "league": "3. Lig - Promotion Play-offs - 3rd Round",
+    "homeTeam": {
+      "id": "16720",
+      "name": "Ayvalıkgücü Belediyespor",
+      "logo": null,
+      "score": ""
+    },
+    "awayTeam": {
+      "id": "32497",
+      "name": "Küçükçekmece Sinopspor",
+      "logo": null,
+      "score": ""
+    }
+  },
+  {
+    "id": "557127",
+    "status": "",
+    "time": "19:00",
+    "league": "3. Lig - Promotion Play-offs - 3rd Round",
+    "homeTeam": {
+      "id": "7676",
+      "name": "Balıkesirspor",
+      "logo": null,
+      "score": ""
+    },
+    "awayTeam": {
+      "id": "27902",
+      "name": "Mazıdağı Fosfatspor",
+      "logo": null,
+      "score": ""
+    }
+  },
+  {
+    "id": "412477",
+    "status": "",
+    "time": "18:00",
+    "league": "Süper Lig",
+    "homeTeam": {
+      "id": "7667",
+      "name": "Adana Demirspor",
+      "logo": null,
+      "score": ""
+    },
+    "awayTeam": {
+      "id": "7707",
+      "name": "Hatayspor",
+      "logo": null,
+      "score": ""
+    }
+  },
+  {
+    "id": "412473",
+    "status": "",
+    "time": "18:00",
+    "league": "Süper Lig",
+    "homeTeam": {
+      "id": "7650",
+      "name": "Bodrumspor",
+      "logo": null,
+      "score": ""
+    },
+    "awayTeam": {
+      "id": "7689",
+      "name": "Trabzonspor",
+      "logo": null,
+      "score": ""
+    }
+  },
+  {
+    "id": "412474",
+    "status": "",
+    "time": "18:00",
+    "league": "Süper Lig",
+    "homeTeam": {
+      "id": "192",
+      "name": "Galatasaray",
+      "logo": null,
+      "score": ""
+    },
+    "awayTeam": {
+      "id": "7693",
+      "name": "Kayserispor",
+      "logo": null,
+      "score": ""
+    }
+  },
+  {
+    "id": "412475",
+    "status": "",
+    "time": "18:00",
+    "league": "Süper Lig",
+    "homeTeam": {
+      "id": "7685",
+      "name": "Rizespor",
+      "logo": null,
+      "score": ""
+    },
+    "awayTeam": {
+      "id": "7701",
+      "name": "Goztepe",
+      "logo": null,
+      "score": ""
+    }
+  },
+  {
+    "id": "412476",
+    "status": "",
+    "time": "18:00",
+    "league": "Süper Lig",
+    "homeTeam": {
+      "id": "7665",
+      "name": "Samsunspor",
+      "logo": null,
+      "score": ""
+    },
+    "awayTeam": {
+      "id": "163",
+      "name": "Sivasspor",
+      "logo": null,
+      "score": ""
+    }
+  },
+  {
+    "id": "412478",
+    "status": "",
+    "time": "18:00",
+    "league": "Süper Lig",
+    "homeTeam": {
+      "id": "7695",
+      "name": "Antalyaspor",
+      "logo": null,
+      "score": ""
+    },
+    "awayTeam": {
+      "id": "7702",
+      "name": "Gaziantep",
+      "logo": null,
+      "score": ""
+    }
+  },
+  {
+    "id": "412479",
+    "status": "",
+    "time": "18:00",
+    "league": "Süper Lig",
+    "homeTeam": {
+      "id": "7699",
+      "name": "Kasimpasa",
+      "logo": null,
+      "score": ""
+    },
+    "awayTeam": {
+      "id": "103",
+      "name": "Basaksehir",
+      "logo": null,
+      "score": ""
+    }
+  },
+  {
+    "id": "412480",
+    "status": "",
+    "time": "18:00",
+    "league": "Süper Lig",
+    "homeTeam": {
+      "id": "7697",
+      "name": "Alanyaspor",
+      "logo": null,
+      "score": ""
+    },
+    "awayTeam": {
+      "id": "187",
+      "name": "Besiktas",
+      "logo": null,
+      "score": ""
+    }
+  },
+  {
+    "id": "412481",
+    "status": "",
+    "time": "18:00",
+    "league": "Süper Lig",
+    "homeTeam": {
+      "id": "7694",
+      "name": "Fenerbahce",
+      "logo": null,
+      "score": ""
+    },
+    "awayTeam": {
+      "id": "7644",
+      "name": "Eyupspor",
+      "logo": null,
+      "score": ""
+    }
+  }
+]
