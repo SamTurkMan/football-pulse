@@ -1,13 +1,12 @@
 import { Article } from '../types/Article';
 
-export const fetchNewsArticles = async (page: number = 1): Promise<Article[]> => {
+export const fetchNewsArticles = async (page: number = 1, limit: number = 4): Promise<Article[]> => {
   try {
     const response = await fetch('/data/articles.json');
     const articles = await response.json();
     
-    const articlesPerPage = 4;
-    const start = (page - 1) * articlesPerPage;
-    const end = start + articlesPerPage;
+    const start = (page - 1) * limit;
+    const end = start + limit;
     
     return articles.slice(start, end);
   } catch (error) {
