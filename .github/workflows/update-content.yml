@@ -1,17 +1,15 @@
 name: Update Football Content
-
 permissions:
   contents: write
 
 on:
   schedule:
-    - cron: '0 20 * * *'   # каждый день в 20:00 UTC (00:00 по Тбилиси)
+    - cron: '0 20 * * *'
   workflow_dispatch:
 
 jobs:
   update-content:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -30,14 +28,12 @@ jobs:
 
       - name: Create .env file
         run: |
-          # Ключ для скрипта fetch-scores.js (APIfootball.com)
+          # ключ для APIfootball.com
           echo "APIFOOTBALL_API_KEY=${{ secrets.APIFOOTBALL_API_KEY }}" >> .env
-
-          # Ключи и URL для скрипта fetch-news.js
+          # ключи для новостей
           echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}"              >> .env
           echo "VITE_NEWS_SOURCE_URL=${{ secrets.VITE_NEWS_SOURCE_URL }}" >> .env
-
-          # Лимиты для OpenAI-переписывания статей
+          # лимиты для переписи статей
           echo "DAILY_LIMIT=5"                                           >> .env
           echo "THROTTLE_MS=120000"                                      >> .env
 
@@ -51,7 +47,6 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name  "github-actions[bot]"
-
           git add public/data/
           if ! git diff --quiet --cached; then
             git fetch origin main
