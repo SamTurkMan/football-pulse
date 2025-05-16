@@ -36,16 +36,16 @@ const ScoreCard: React.FC<ScoreCardProps> = ({ match, darkMode }) => {
   };
 
   return (
-    <div className={`flex-shrink-0 w-72 rounded-lg ${darkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-gray-50'} p-3 transition-colors duration-200 shadow-md`}>
-      <div className="text-xs font-medium mb-2 flex justify-between items-center">
-        <span className="text-accent-light">{match.league}</span>
-        <span className={`${getStatusColor(match.status)}`}>
+    <div className={`flex-shrink-0 w-[280px] rounded-lg ${darkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-gray-50'} p-3 transition-colors duration-200 shadow-md`}>
+      <div className="text-xs font-medium mb-2.5 flex justify-between items-center">
+        <span className="text-accent-light truncate max-w-[180px]">{match.league}</span>
+        <span className={`${getStatusColor(match.status)} ml-2 flex-shrink-0`}>
           {formatTime(match.time)}
         </span>
       </div>
       
-      <div className="flex justify-between items-center">
-        <div className="flex items-center space-x-2">
+      <div className="flex items-center">
+        <div className="flex items-center space-x-2 w-[110px]">
           <div className="w-6 h-6 flex-shrink-0">
             <img 
               src={match.homeTeam.logo} 
@@ -53,19 +53,25 @@ const ScoreCard: React.FC<ScoreCardProps> = ({ match, darkMode }) => {
               className="w-full h-full object-contain"
             />
           </div>
-          <span className="font-medium text-sm truncate max-w-[80px]">{match.homeTeam.name}</span>
+          <span className="font-medium text-sm truncate">
+            {match.homeTeam.name}
+          </span>
         </div>
         
-        {match.status.toLowerCase() === 'scheduled' ? (
-          <div className="text-sm font-bold px-2">vs</div>
-        ) : (
-          <div className="text-sm font-bold px-2">
-            {match.homeTeam.score} - {match.awayTeam.score}
-          </div>
-        )}
+        <div className="flex-shrink-0 w-[44px] text-center mx-2">
+          {match.status.toLowerCase() === 'scheduled' ? (
+            <div className="text-sm font-bold">vs</div>
+          ) : (
+            <div className="text-sm font-bold tabular-nums">
+              {match.homeTeam.score}-{match.awayTeam.score}
+            </div>
+          )}
+        </div>
         
-        <div className="flex items-center space-x-2">
-          <span className="font-medium text-sm truncate max-w-[80px]">{match.awayTeam.name}</span>
+        <div className="flex items-center space-x-2 w-[110px] justify-end">
+          <span className="font-medium text-sm truncate">
+            {match.awayTeam.name}
+          </span>
           <div className="w-6 h-6 flex-shrink-0">
             <img 
               src={match.awayTeam.logo} 
