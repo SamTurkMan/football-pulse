@@ -1,55 +1,40 @@
 // scripts/fetch-scores.js
-
 const fs    = require('fs');
 const path  = require('path');
 const fetch = require('node-fetch');
 require('dotenv').config();
 
-////////////////////////////////////////////////////////////////////////////////
-// Конфиг
-////////////////////////////////////////////////////////////////////////////////
-
-// Ваш ключ из Secrets
+// ==================== Конфиг ====================
 const API_KEY    = process.env.APIFOOTBALL_API_KEY;
 if (!API_KEY) {
   console.error('Error: APIFOOTBALL_API_KEY is not set');
   process.exit(1);
 }
-
-// Правильный базовый URL для v3
 const BASE_URL   = 'https://apiv3.apifootball.com/';
+const LEAGUE_IDS = [318, 319, 320, 321, 322, 323, 532]; // ваши ID лиг
 
-// Лиги Турции, которые вы нашли на сайте
-const LEAGUE_IDS = [318, 319, 320, 321, 322, 323, 532];
-
-////////////////////////////////////////////////////////////////////////////////
-// Утилиты
-////////////////////////////////////////////////////////////////////////////////
-
+// ==================== Утилита запроса ====================
 async function apiGet(params) {
-  // строим URL вида:
-  // https://apiv3.apifootball.com/?action=...&league_id=...&APIkey=your_key
   const url = new URL(BASE_URL);
-  // сначала общий параметр APIkey
+  // сначала APIkey
   url.searchParams.set('APIkey', API_KEY);
-  // потом все переданные вам параметры
+  // потом все ваши params
   for (const [k, v] of Object.entries(params)) {
     url.searchParams.set(k, v);
   }
   console.log(`→ GET ${url}`);
   const res  = await fetch(url);
-  const json = await res.json();
-  if (!Array.isArray(json)) {
-    throw new Error(`APIfootball returned unexpected: ${JSON.stringify(json)}`);
+  const body = await res.json();
+
+  // Если APIfootball вернул объект ошибки — считаем, что матчей нет
+  if (!Array.isArray(body)) {
+    console.warn(`⚠️ APIfootball warning for action=${params.action} league_id=${params.league_id}:`, body);
+    return [];
   }
-  return json;
+  return body;
 }
 
-////////////////////////////////////////////////////////////////////////////////
-// Сбор и сохранение
-////////////////////////////////////////////////////////////////////////////////
-
-// Нормализуем ответ в ваш формат
+// ==================== Нормализация и сохранение ====================
 function normalize(matches) {
   return matches.map(m => ({
     id:       m.match_id,
@@ -71,7 +56,6 @@ function normalize(matches) {
   }));
 }
 
-// Дедупликация и запись в файл
 function saveJSON(filename, arr) {
   const uniq = Array.from(new Map(arr.map(m => [m.match_id, m])).values());
   const file = path.join(process.cwd(), 'public', 'data', filename);
@@ -79,6 +63,7 @@ function saveJSON(filename, arr) {
   console.log(`✅ ${filename}: saved ${uniq.length} items`);
 }
 
+// ==================== Основной процесс ====================
 (async () => {
   try {
     const today = new Date().toISOString().split('T')[0];
@@ -91,33 +76,42 @@ function saveJSON(filename, arr) {
     const upcomingAll = [];
 
     for (const league_id of LEAGUE_IDS) {
-      // 1) Live-матчи
-      const live = await apiGet({
-        action:    'get_live_scores',
-        league_id: league_id
-      });
-      liveAll.push(...live);
+      // 1) live-матчи
+      try {
+        const live = await apiGet({ action: 'get_live_scores', league_id });
+        liveAll.push(...live);
+      } catch (err) {
+        console.error(`Error fetching live_scores for league ${league_id}:`, err);
+      }
 
-      // 2) Сегодня
-      const td = await apiGet({
-        action:    'get_events',
-        league_id: league_id,
-        from:      today,
-        to:        today
-      });
-      todayAll.push(...td);
+      // 2) матчи сегодня
+      try {
+        const td = await apiGet({
+          action:    'get_events',
+          league_id,
+          from:      today,
+          to:        today
+        });
+        todayAll.push(...td);
+      } catch (err) {
+        console.error(`Error fetching today's events for league ${league_id}:`, err);
+      }
 
-      // 3) Следующая неделя
-      const up = await apiGet({
-        action:    'get_events',
-        league_id: league_id,
-        from:      today,
-        to:        to
-      });
-      upcomingAll.push(...up);
+      // 3) матчи на неделю вперёд
+      try {
+        const up = await apiGet({
+          action:    'get_events',
+          league_id,
+          from:      today,
+          to:        to
+        });
+        upcomingAll.push(...up);
+      } catch (err) {
+        console.error(`Error fetching upcoming events for league ${league_id}:`, err);
+      }
     }
 
-    // убедимся, что папка существует
+    // Убедимся, что директория есть
     const dir = path.join(process.cwd(), 'public', 'data');
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
@@ -126,8 +120,8 @@ function saveJSON(filename, arr) {
     saveJSON('upcoming-matches.json', upcomingAll);
 
     console.log('⚽ All done!');
-  } catch (err) {
-    console.error('Fatal error:', err);
+  } catch (fatal) {
+    console.error('Fatal error in main():', fatal);
     process.exit(1);
   }
 })();
