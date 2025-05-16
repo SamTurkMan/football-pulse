@@ -5,28 +5,33 @@ import { Match } from '../types/Match';
 const API_KEY  = '88eb6ed5d5aa074ac758f707e5a42e152e401d052f03bd95caf03e41e05a1872';
 const BASE_URL = 'https://apiv3.apifootball.com/';
 
-/** Делает GET к APIfootball, возвращает [] при ошибке или не-массиве */
+/** Универсальный GET → [] при ошибке или не-массиве */
 async function apiGet(params: Record<string,string>): Promise<any[]> {
   const url = new URL(BASE_URL);
   url.searchParams.set('APIkey', API_KEY);
-  for (const [k, v] of Object.entries(params)) {
-    url.searchParams.set(k, v);
-  }
+  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
   const res  = await fetch(url.toString());
   const body = await res.json();
   return Array.isArray(body) ? body : [];
 }
 
-/** Парсит "YYYY-MM-DD HH:mm:ss" → UTC Date */
+/** Парсит "YYYY-MM-DD HH:mm:ss" в UTC Date */
 function parseMatchDate(str: string): Date {
   return new Date(str.replace(' ', 'T') + 'Z');
 }
 
-/** Форматирует Date → { date, time } (турецкая локаль) */
-function formatDate(dt: Date) {
+/** Форматирует Date → { date, time } для турецкой локали */
+function formatDate(dt: Date): { date: string; time: string } {
   return {
-    date: dt.toLocaleDateString('tr-TR', { day:'numeric', month:'long', year:'numeric' }),
-    time: dt.toLocaleTimeString(  'tr-TR', { hour:'2-digit', minute:'2-digit' })
+    date: dt.toLocaleDateString('tr-TR', {
+      day:   'numeric',
+      month: 'long',
+      year:  'numeric'
+    }),
+    time: dt.toLocaleTimeString('tr-TR', {
+      hour:   '2-digit',
+      minute: '2-digit'
+    })
   };
 }
 
@@ -45,15 +50,15 @@ function computeStartsIn(dt: Date, status: string): string {
   return h > 0 ? `in ${h}h ${m}m` : `in ${m}m`;
 }
 
-/** Нормализует один объект API → Match */
+/** Преобразует «сырое» событие API в объект Match */
 function normalizeEvent(m: any): Match {
-  const dt       = parseMatchDate(m.match_date);
+  const dt = parseMatchDate(m.match_date);
   const { date, time } = formatDate(dt);
-  const startsIn = computeStartsIn(dt, m.match_status);
+  const startsIn       = computeStartsIn(dt, m.match_status);
 
   return {
     id:       m.match_id.toString(),
-    status:   m.match_status,  // 'NS' | 'LIVE' | 'FT'
+    status:   m.match_status,   // "NS" | "LIVE" | "FT"
     date,                       // "16 Mayıs 2025"
     time,                       // "15:30"
     startsIn,                   // "in 2h 5m" | "LIVE" | "Finished"
@@ -74,52 +79,51 @@ function normalizeEvent(m: any): Match {
 }
 
 /**
- * Возвращает Match[] для трёх типов:
- * - 'live'     — все LIVE-матчи
- * - 'today'    — матчи сегодняшнего дня (NS + LIVE)
- * - 'upcoming' — до 10 ближайших будущих NS-матчей
+ * Возвращает Match[] для:
+ *  - 'live'     — только LIVE-матчи
+ *  - 'today'    — матчи на сегодня (NS + LIVE)
+ *  - 'upcoming' — до 10 ближайших NS-матчей
  */
-export const fetchFootballScores = async (
+export async function fetchFootballScores(
   type: 'live' | 'today' | 'upcoming'
-): Promise<Match[]> => {
+): Promise<Match[]> {
   try {
-    // 1) Собираем параметры
     const today = new Date().toISOString().slice(0,10);
-    const next  = new Date(); next.setDate(next.getDate()+7);
-    const to    = next.toISOString().slice(0,10);
+    const toDate = new Date();
+    toDate.setDate(toDate.getDate() + 7);
+    const to = toDate.toISOString().slice(0,10);
 
     let params: Record<string,string>;
+
     if (type === 'live') {
-      params = { action: 'get_live_scores', live: 'all' };
+      params = { action:'get_live_scores', live:'all' };
     } else if (type === 'today') {
-      params = { action: 'get_events', date: today };
-    } else { // upcoming
-      params = { action: 'get_events', from: today, to, status: 'NS' };
+      params = { action:'get_events', date: today };
+    } else {
+      params = { action:'get_events', from: today, to, status:'NS' };
     }
 
-    // 2) Получаем «сырые» данные
     let raw = await apiGet(params);
 
-    // 3) Фильтрация и сортировка
     if (type === 'live') {
       raw = raw.filter((m:any) => m.match_status === 'LIVE');
     }
     if (type === 'today') {
-      raw = raw.filter((m:any) => m.match_status === 'NS' || m.match_status === 'LIVE');
+      raw = raw.filter((m:any) => ['NS','LIVE'].includes(m.match_status));
     }
     if (type === 'upcoming') {
       raw = raw
         .filter((m:any) => m.match_status === 'NS')
-        .sort((a:any,b:any) => 
-          parseMatchDate(a.match_date).getTime() - parseMatchDate(b.match_date).getTime()
+        .sort((a:any,b:any) =>
+          parseMatchDate(a.match_date).getTime() -
+          parseMatchDate(b.match_date).getTime()
         )
         .slice(0,10);
     }
 
-    // 4) Возвращаем нормализованный массив
     return raw.map(normalizeEvent);
   } catch (err) {
     console.error('Error fetching football scores:', err);
     return [];
   }
-};
+}
