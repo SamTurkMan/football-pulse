@@ -56,7 +56,9 @@ const ScoreCard: React.FC<ScoreCardProps> = ({ match, darkMode }) => {
       darkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-gray-50'
     } p-3 transition-all duration-300 transform hover:scale-[1.02] shadow-md`}>
       <div className="text-xs font-medium mb-2.5 flex justify-between items-center">
-        <span className="text-accent-light truncate max-w-[180px]">{match.league}</span>
+        <span className={`truncate max-w-[180px] ${darkMode ? 'text-accent-light' : 'text-primary'}`}>
+          {match.league}
+        </span>
         <span className={`${getStatusColor(match.status)} ml-2 flex-shrink-0`}>
           {formatTime(match.time)}
         </span>
@@ -66,10 +68,14 @@ const ScoreCard: React.FC<ScoreCardProps> = ({ match, darkMode }) => {
         <div className="flex items-center space-x-2 w-[100px] sm:w-[110px]">
           <User 
             size={18} 
-            className="text-white/80 flex-shrink-0 transition-opacity duration-300"
+            className={`flex-shrink-0 transition-opacity duration-300 ${
+              darkMode ? 'text-white/80' : 'text-gray-600'
+            }`}
           />
           <span 
-            className="font-medium text-sm truncate text-white transition-all duration-300 hover:opacity-80" 
+            className={`font-medium text-sm truncate transition-all duration-300 hover:opacity-80 ${
+              darkMode ? 'text-white' : 'text-gray-900'
+            }`}
             title={match.homeTeam.name}
           >
             {truncateTeamName(match.homeTeam.name)}
@@ -78,9 +84,9 @@ const ScoreCard: React.FC<ScoreCardProps> = ({ match, darkMode }) => {
         
         <div className="flex-shrink-0 w-[44px] text-center mx-2">
           {match.status.toLowerCase() === 'scheduled' ? (
-            <div className="text-sm font-bold text-white">vs</div>
+            <div className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>vs</div>
           ) : (
-            <div className="text-sm font-bold tabular-nums text-white">
+            <div className={`text-sm font-bold tabular-nums ${darkMode ? 'text-white' : 'text-gray-900'}`}>
               {match.homeTeam.score}-{match.awayTeam.score}
             </div>
           )}
@@ -88,14 +94,18 @@ const ScoreCard: React.FC<ScoreCardProps> = ({ match, darkMode }) => {
         
         <div className="flex items-center space-x-2 w-[100px] sm:w-[110px] justify-end">
           <span 
-            className="font-medium text-sm truncate text-right text-white transition-all duration-300 hover:opacity-80" 
+            className={`font-medium text-sm truncate text-right transition-all duration-300 hover:opacity-80 ${
+              darkMode ? 'text-white' : 'text-gray-900'
+            }`}
             title={match.awayTeam.name}
           >
             {truncateTeamName(match.awayTeam.name)}
           </span>
           <User 
             size={18} 
-            className="text-white/80 flex-shrink-0 transition-opacity duration-300"
+            className={`flex-shrink-0 transition-opacity duration-300 ${
+              darkMode ? 'text-white/80' : 'text-gray-600'
+            }`}
           />
         </div>
       </div>
