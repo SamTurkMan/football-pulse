@@ -5,9 +5,9 @@ import NewsSection from './components/NewsSection';
 import ScoresSection from './components/ScoresSection';
 import Footer from './components/Footer';
 import ArticlePage from './components/ArticlePage';
+import SearchResults from './components/SearchResults';
 import { setDefaultMetaTags } from './utils/metaTags';
 
-// ScrollToTop component to handle scroll behavior on route change
 const ScrollToTop = () => {
   const { pathname } = useLocation();
 
@@ -56,6 +56,7 @@ function App() {
               </div>
             } />
             <Route path="/article/:id" element={<ArticlePage darkMode={darkMode} />} />
+            <Route path="/search" element={<SearchResults darkMode={darkMode} />} />
           </Routes>
         </main>
         

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Flame, Sun, Moon, Menu, X, Facebook, Instagram, MessageSquare } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Flame, Sun, Moon, Menu, X, Search, Facebook, Instagram, MessageSquare } from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 interface HeaderProps {
   darkMode: boolean;
@@ -9,8 +9,27 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ darkMode, toggleDarkMode }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      setIsMenuOpen(false);
+    }
+  };
+
+  // Clear search when navigating away from search results
+  React.useEffect(() => {
+    if (!location.pathname.includes('/search')) {
+      setSearchQuery('');
+    }
+  }, [location]);
 
   return (
     <header className={`sticky top-0 ${darkMode ? 'bg-primary-dark' : 'bg-primary'} text-white shadow-lg z-40`}>
@@ -35,13 +54,33 @@ const Header: React.FC<HeaderProps> = ({ darkMode, toggleDarkMode }) => {
             >
               Haberler
             </Link>
-            <Link 
-              to="/#scores" 
-              className="text-accent-light hover:text-white transition-colors duration-200"
-            >
-              Skorlar
-            </Link>
             
+            {/* Desktop Search Bar */}
+            <form onSubmit={handleSearch} className="relative group">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => setIsSearchFocused(true)}
+                onBlur={() => setIsSearchFocused(false)}
+                placeholder="Haberlerde ara..."
+                className={`
+                  py-2 pl-4 pr-10 rounded-full
+                  bg-primary-light/10 border border-primary-light/20
+                  text-white placeholder-accent-light/70
+                  focus:outline-none focus:ring-2 focus:ring-accent-light/50
+                  transition-all duration-300
+                  ${isSearchFocused ? 'w-[300px]' : 'w-[200px]'}
+                `}
+              />
+              <button
+                type="submit"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-accent-light hover:text-white transition-colors duration-200"
+              >
+                <Search size={18} />
+              </button>
+            </form>
+
             {/* Social Media Icons */}
             <div className="flex items-center space-x-3 border-l border-primary-light/20 pl-6">
               <button 
@@ -99,19 +138,32 @@ const Header: React.FC<HeaderProps> = ({ darkMode, toggleDarkMode }) => {
           ${isMenuOpen ? 'max-h-48 opacity-100 mt-4' : 'max-h-0 opacity-0 overflow-hidden'}
         `}>
           <nav className="flex flex-col space-y-4 py-4 border-t border-primary-light/10">
+            {/* Mobile Search Bar */}
+            <form onSubmit={handleSearch} className="relative">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Haberlerde ara..."
+                className="w-full py-2 pl-4 pr-10 rounded-full
+                         bg-primary-light/10 border border-primary-light/20
+                         text-white placeholder-accent-light/70
+                         focus:outline-none focus:ring-2 focus:ring-accent-light/50"
+              />
+              <button
+                type="submit"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-accent-light"
+              >
+                <Search size={18} />
+              </button>
+            </form>
+
             <Link 
               to="/#news" 
               className="text-accent-light hover:text-white transition-colors duration-200"
               onClick={() => setIsMenuOpen(false)}
             >
               Haberler
-            </Link>
-            <Link 
-              to="/#scores" 
-              className="text-accent-light hover:text-white transition-colors duration-200"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Skorlar
             </Link>
             
             {/* Mobile Social Media Icons */}
