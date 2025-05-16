@@ -30,14 +30,14 @@ jobs:
 
       - name: Create .env file
         run: |
-          # 1) Ключ для APIfootball.com
+          # для скрипта fetch-scores.js (APIfootball.com)
           echo "APIFOOTBALL_API_KEY=${{ secrets.APIFOOTBALL_API_KEY }}" >> .env
 
-          # 2) Ключи для fetch-news.js
+          # для скрипта fetch-news.js
           echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}"              >> .env
           echo "VITE_NEWS_SOURCE_URL=${{ secrets.VITE_NEWS_SOURCE_URL }}" >> .env
 
-          # 3) Лимиты для переписи статей
+          # лимиты для OpenAI
           echo "DAILY_LIMIT=5"                                           >> .env
           echo "THROTTLE_MS=120000"                                      >> .env
 
@@ -51,11 +51,19 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name  "github-actions[bot]"
+
+          # stage изменения в public/data
           git add public/data/
+
+          # если есть staged изменения — пробуем забрать remote, чтобы не было конфликтов
           if ! git diff --quiet --cached; then
-            git fetch origin main
-            git rebase origin/main
+            echo "🎬 Changes detected, pulling remote and rebasing with autostash…"
+            git pull --rebase --autostash origin main
+
+            echo "💾 Committing updated data…"
             git commit -m "Update football content [skip ci]"
+
+            echo "🚀 Pushing to origin/main…"
             git push
           else
             echo "✅ No changes to commit"
